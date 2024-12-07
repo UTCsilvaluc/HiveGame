@@ -1,2 +1,0 @@
-# HiveGame
- Projet LO21
