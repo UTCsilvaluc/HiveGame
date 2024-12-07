@@ -18,7 +18,9 @@ std::vector<Hexagon> Insecte::getVoisinsEnnemis(const std::vector<Hexagon>& vois
     return voisinsEnnemis;
 }
 Insecte* trouverReine(Joueur* joueur, const std::map<Hexagon, Insecte*>& plateau) {
-    for (const auto& [position, insecte] : plateau) {
+    for (auto it = plateau.begin(); it != plateau.end(); ++it) {
+        Hexagon position = it->first;
+        Insecte* insecte = it->second;
         if (insecte != nullptr && insecte->getOwner() == joueur && insecte->isQueen()) {
             return insecte;
         }
