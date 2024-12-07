@@ -96,3 +96,46 @@
 	<iostream>
 	<stdexcept>
 
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\main.cpp
+	"GameMaster.h"
+
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\src\action.cpp
+	"Action.h"
+
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\src\gamemaster.cpp
+	"GameMaster.h"
+	<fstream>
+	<iostream>
+	<sstream>
+	<string>
+	"GameMaster.h"
+	"Insecte.h"
+	<fstream>
+	<iostream>
+	<sstream>
+	<string>
+	"GameMaster.h"
+	"Insecte.h"
+	<fstream>
+	<sstream>
+	<fstream>
+	<sstream>
+	<fstream>
+	<sstream>
+	<iostream>
+	<stdexcept>
+
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\src\hexagon.cpp
+	"Hexagon.h"
+	<sstream>
+
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\src\insecte.cpp
+	"Insecte.h"
+
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\src\joueur.cpp
+	"Joueur.h"
+	<sstream>
+
+1733596887 source:c:\users\debru\documents\projetlo21\hivegame\src\plateau.cpp
+	"Plateau.h"
+
