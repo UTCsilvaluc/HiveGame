@@ -191,7 +191,7 @@ void GameMaster::jouer() {
                 std::cout << "Aucun mouvement possible, vous devez placer un pion.\n";
                 choice = 2;
             } else {
-                choice = current->getInputForAction();
+                choice = current->getInputForAction(plateau.getPlateauMap());
             }
         }
         while (true) {
@@ -201,7 +201,7 @@ void GameMaster::jouer() {
                     break;
                 } else {
                     std::cout << "Aucune action � annuler, essayez une autre option.\n";
-                    choice = current->getInputForAction();
+                    choice = current->getInputForAction(plateau.getPlateauMap());
                     continue;
                 }
             } else if (choice == 1) {
@@ -214,7 +214,7 @@ void GameMaster::jouer() {
                 break;
             } else {
                 std::cout << "Choix invalide. Veuillez r�essayer.\n";
-                choice = current->getInputForAction();
+                choice = current->getInputForAction(plateau.getPlateauMap());
             }
         }
         tour++;

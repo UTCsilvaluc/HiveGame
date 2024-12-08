@@ -67,7 +67,7 @@ public:
     std::vector<Insecte*> getInsectesDuJoueur(const std::map<Hexagon, Insecte*>& plateauMap) const ;
 
     // Méthodes virtuelles pures
-    virtual int getInputForAction() = 0; // Choix entre déplacer, placer ou annuler
+    virtual int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) = 0; // Choix entre déplacer, placer ou annuler
     virtual Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) = 0; // Coordonnées du premier placement
     virtual int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) = 0; // Choisir un insecte à déplacer
     virtual int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) = 0; // Choisir un mouvement pour un insecte
@@ -80,7 +80,7 @@ class JoueurHumain : public Joueur{
 public:
     JoueurHumain(const std::string& nom) : Joueur(nom) {}
 
-    int getInputForAction() {
+    int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) {
         int choice = 0;
         while (true) {
             std::cout << "Que voulez-vous faire ?\n"
@@ -141,7 +141,7 @@ public:
         generator = std::default_random_engine(rd());
     }
 
-    int getInputForAction() {
+    int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) {
         return randomChoice();
     }
 
@@ -215,7 +215,7 @@ public:
 
 enum HeuristiqueType { PROTEGER_REINE, ATTAQUER_REINE, COMPACTER_RUCHE, AUCUN_HEURISTIQUE }; // Ajout d'une énumération pour les types d'heuristiques
 
-enum ActionType { PLACER = 1, DEPLACER = 2, AUCUN_ACTION = 0 };
+enum ActionType { DEPLACER = 1, PLACER = 2, AUCUN_ACTION = 0 };
 
 class JoueurIANiveau2 : public JoueurIA {
 private:
@@ -223,9 +223,10 @@ private:
     Hexagon positionChoisie;                            // Pour mémoriser la position choisie
     Insecte* insecteChoisi;                             // Pour mémoriser l'insecte choisi (peut être dans le deck ou sur le plateau)
     std::map<Insecte*, std::vector<Hexagon>> candidats; // Map pour stocker les insectes et leurs déplacements possibles
+    std::vector<HeuristiqueType> historiqueHeuristiques; // Historique des heuristiques choisies
 
 public:
-    JoueurIANiveau2(std::string nom) : JoueurIA(nom), actionChoisie(AUCUN_ACTION), positionChoisie(), insecteChoisi(nullptr) {}
+    JoueurIANiveau2(std::string nom) : JoueurIA(nom), actionChoisie(AUCUN_ACTION), positionChoisie(), insecteChoisi(nullptr), historiqueHeuristiques() {}
 
     int getActionPourGameMaster() const { return static_cast<int>(actionChoisie); }
     Hexagon getPositionChoisie() const { return positionChoisie; }
@@ -236,18 +237,21 @@ public:
     // Setter pour l'attribut candidats
     void setCandidats(const std::map<Insecte*, std::vector<Hexagon>>& nouveauxCandidats) {candidats = nouveauxCandidats;}
 
-    HeuristiqueType choisirHeuristique(Joueur* joueur, Joueur* adversaire, const std::map<Hexagon, Insecte*>& plateau);
+    HeuristiqueType choisirHeuristique(const std::map<Hexagon, Insecte*>& plateau);
+    void reinitialiserAttributs();
+    void afficherHistoriqueHeuristiques() const;
+    void afficherCandidats() const;
 
     void choisirAction(std::map<Hexagon, Insecte*>& plateau);
 
-    void deplacerPourProtegerReine(std::map<Hexagon, Insecte*>& plateau);
+    void protegerReine(const std::map<Hexagon, Insecte*>& plateau);
     void verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins, const std::map<Hexagon, Insecte*>& plateau);
     void verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine, const std::map<Hexagon, Insecte*>& plateau);
 
     int findIndexInOptions(Insecte* insecteChoisi, const std::map<Insecte*, std::vector<Hexagon>>& candidats, const std::vector<Hexagon>& options);
 
 
-    int getInputForAction() override;
+    int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) override;
     Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) override{
         //A implémenter si on veut faire commencer IA ou faire jouer IA contre IA
         return Hexagon(0,0);

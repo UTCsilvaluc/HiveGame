@@ -124,67 +124,7 @@ std::string Joueur::toJson() const {
     return jsonData.str();
 }
 
-HeuristiqueType JoueurIANiveau2::choisirHeuristique(Joueur* joueur, Joueur* adversaire, const std::map<Hexagon, Insecte*>& plateau) {
-        // Trouver la Reine du joueur
-    Insecte* reine = trouverReine(joueur, plateau);
-    Insecte* reineAdverse = trouverReine(adversaire, plateau);
-
-    if (reine == nullptr || reineAdverse == nullptr) {
-        return AUCUN_HEURISTIQUE;
-    }
-
-    // Récupérer les voisins de la Reine
-    std::vector<Hexagon> voisinsReine = getVoisins(reine->getCoords());
-    std::vector<Hexagon> ennemisVoisins = reine->getVoisinsEnnemis(voisinsReine, plateau);
-
-    // Si la Reine est en danger (trop de voisins ennemis), choisir de la protéger
-    if (ennemisVoisins.size() > 3) {
-        return PROTEGER_REINE;
-    }
-
-// Vérifier si l'un des insectes alliés peut atteindre la Reine adverse
-    for (auto it = plateau.begin(); it != plateau.end(); ++it) {
-        Insecte* insecte = it->second;
-
-        if (insecte != nullptr && insecte->getOwner() == joueur) {
-            std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(plateau);
-            if (std::find(deplacementsPossibles.begin(), deplacementsPossibles.end(), reineAdverse->getCoords()) != deplacementsPossibles.end()) {
-                return ATTAQUER_REINE;
-            }
-        }
-    }
-
-
-    // Sinon, jouer de manière défensive pour compacter la ruche
-    return COMPACTER_RUCHE;
-}
-void JoueurIANiveau2::choisirAction(std::map<Hexagon, Insecte*>& plateau) {
-        // Supposons que vous ayez des pointeurs vers le joueur et l'adversaire
-    Joueur* joueur = this;
-    Joueur* adversaire = nullptr; // Initialiser correctement l'adversaire
-
-    // Choisir l'heuristique en utilisant la fonction déterministe
-    HeuristiqueType heuristique = choisirHeuristique(joueur, adversaire, plateau);
-
-    // Ensuite, appliquer la logique associée à l'heuristique choisie
-    switch (heuristique) {
-        case PROTEGER_REINE:
-            deplacerPourProtegerReine(plateau);
-            break;
-        case ATTAQUER_REINE:
-            // Implémenter la logique d'attaque de la Reine adverse
-            break;
-        case COMPACTER_RUCHE:
-            // Implémenter la logique pour compacter la ruche
-            break;
-        default:
-            // Si aucune heuristique particulière ne s'applique, faire un coup aléatoire
-            //defaultAction(plateau);
-            break;
-    }
-}
-
-void JoueurIANiveau2::deplacerPourProtegerReine(std::map<Hexagon, Insecte*>& plateau) {
+void JoueurIANiveau2::protegerReine(const std::map<Hexagon, Insecte*>& plateau) {
     // Récupérer la Reine du joueur sur le plateau
     Insecte* reine = getQueenOnPlateau(plateau);
     if (!reine) {
@@ -204,6 +144,10 @@ void JoueurIANiveau2::deplacerPourProtegerReine(std::map<Hexagon, Insecte*>& pla
 
     // Ajouter les déplacements possibles des alliés
     verifierDeplacementsAllies(reine, voisinsReine, plateau);
+
+    if (!candidats.empty()) {
+        actionChoisie = DEPLACER;
+    }
 }
 
 
@@ -279,14 +223,91 @@ int JoueurIANiveau2::findIndexInOptions(Insecte* insecteChoisi, const std::map<I
     throw std::runtime_error("Aucune correspondance trouvée entre candidats et options !");
 }
 
-
-
-int JoueurIANiveau2::getInputForAction() {
-    if (actionChoisie == AUCUN_ACTION) {
-        return randomChoice(); // Prendre une action aléatoire si aucune heuristique n'est trouvée
-    }
-    return static_cast<int>(actionChoisie); // Retourner l'action définie par l'heuristique
+void JoueurIANiveau2::reinitialiserAttributs() {
+    actionChoisie = AUCUN_ACTION;
+    insecteChoisi = nullptr;
+    positionChoisie = Hexagon();
+    candidats.clear(); // Réinitialiser les candidats
 }
+
+void JoueurIANiveau2::afficherCandidats() const {
+    std::cout << "Candidats actuels : ";
+    if (candidats.empty()) {
+        std::cout << "Aucun candidat trouvé." << std::endl;
+        return;
+    }
+
+    for (const auto& pair : candidats) {
+        std::cout << "Insecte : " << pair.first->getNom() << " Déplacements : ";
+        for (const Hexagon& deplacement : pair.second) {
+            std::cout << "(" << deplacement.getQ() << ", " << deplacement.getR() << ") ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+
+HeuristiqueType JoueurIANiveau2::choisirHeuristique(const std::map<Hexagon, Insecte*>& plateau) {
+    reinitialiserAttributs(); // Réinitialiser les attributs au début de l'heuristique
+
+    // Récupérer la Reine sur le plateau
+    Insecte* reine = getQueenOnPlateau(plateau);
+    if (reine) {
+        // Vérifier si la Reine a plus de 3 voisins
+        std::vector<Hexagon> voisinsReine = getVoisins(reine->getCoords());
+        if (voisinsReine.size() > 3) {
+            protegerReine(plateau);
+            historiqueHeuristiques.push_back(PROTEGER_REINE);
+            return PROTEGER_REINE;
+        }
+    }
+    // Ajouter d'autres heuristiques ici si nécessaire
+
+    historiqueHeuristiques.push_back(AUCUN_HEURISTIQUE);
+    return AUCUN_HEURISTIQUE;
+}
+
+void JoueurIANiveau2::afficherHistoriqueHeuristiques() const {
+    std::cout << "Historique des heuristiques utilisées : ";
+    for (const auto& heuristique : historiqueHeuristiques) {
+        switch (heuristique) {
+            case PROTEGER_REINE:
+                std::cout << "PROTEGER_REINE ";
+                break;
+            case ATTAQUER_REINE:
+                std::cout << "ATTAQUER_REINE ";
+                break;
+            case COMPACTER_RUCHE:
+                std::cout << "COMPACTER_RUCHE ";
+                break;
+            case AUCUN_HEURISTIQUE:
+                std::cout << "AUCUN_HEURISTIQUE ";
+                break;
+        }
+    }
+    std::cout << std::endl;
+}
+
+
+
+int JoueurIANiveau2::getInputForAction(const std::map<Hexagon, Insecte*>& plateau) {
+    // Appeler l'heuristique et récupérer l'action
+    HeuristiqueType heuristiqueChoisie = choisirHeuristique(plateau);
+
+    // Afficher l'historique des heuristiques
+    afficherHistoriqueHeuristiques();
+    afficherCandidats();
+
+    // Si une action a été choisie, la retourner
+    if (actionChoisie != AUCUN_ACTION) {
+        return static_cast<int>(actionChoisie);
+    }
+
+    // Si aucune heuristique n'a fonctionné, retourner une action aléatoire
+    return randomChoice();
+}
+
+
 
 int JoueurIANiveau2::getInputForDeckIndex() {
     if (candidats.empty()) {
