@@ -1,9 +1,10 @@
 #include "GameMaster.h"
+
 void GameMaster::startGame() {
     //displaySaveGame();
     std::ifstream file("game_save82.json");
     std::cout << "\nD�marrage du jeu HiveGame en cours...\n" << std::endl;
-    choixExtensions();
+    creerDeck();
     mode = getInput("Merci de s�lectionner le mode de jeu :\n1 - Joueur vs Joueur (JvJ)\n2 - Joueur vs IA (JvIA)\n", 1, 2);
     //std::cout << "Vous avez s�lectionn� le mode : " << (mode == 1 ? "JvJ" : "JvIA") << "\n";
     if (mode == 1 ) std::cout << "Vous avez s�lectionn� le mode : JvJ" << "\n";
@@ -32,6 +33,104 @@ void GameMaster::startGame() {
     std::cout << "Joueur 2 cr�� : " << joueur2->getName() << std::endl;
     jouer();
 }
+std::vector<Insecte*> GameMaster::creerDeck() {
+    InsecteFactoryImpl factory(13);  // Limite maximale d'insectes (par exemple, 13)
+
+    while (true) {
+        std::cout << "\n--- Configuration des extensions et du deck ---\n";
+        std::cout << "Extensions activées :\n";
+        auto extensionsActives = factory.getInsecteExtensionsActives();
+        for (size_t i = 0; i < extensionsActives.size(); ++i) {
+            std::cout << "(" << i + 1 << ") - " << extensionsActives[i] << "\n";
+        }
+
+        std::cout << "\nOptions :\n";
+        std::cout << "1. Activer une extension\n";
+        std::cout << "2. Désactiver une extension\n";
+        std::cout << "3. Modifier le deck (ajouter/retirer occurrences)\n";
+        std::cout << "4. Générer le deck\n";
+        std::cout << "Votre choix : ";
+
+        int choix;
+        std::cin >> choix;
+
+        if (choix == 1) {
+            // Activer une extension
+            auto extensionsDisponibles = factory.getInsecteExtensionsDisponibles();
+            if (extensionsDisponibles.empty()) {
+                std::cout << "Aucune extension disponible.\n";
+                continue;
+            }
+            std::cout << "Extensions disponibles :\n";
+            for (size_t i = 0; i < extensionsDisponibles.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << extensionsDisponibles[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'extension à activer : ";
+            int index;
+            std::cin >> index;
+            if (index > 0 && index <= static_cast<int>(extensionsDisponibles.size())) {
+                factory.activerExtension(extensionsDisponibles[index - 1]);
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 2) {
+            // Désactiver une extension
+            if (extensionsActives.empty()) {
+                std::cout << "Aucune extension activée.\n";
+                continue;
+            }
+            std::cout << "Extensions activées :\n";
+            for (size_t i = 0; i < extensionsActives.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << extensionsActives[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'extension à désactiver : ";
+            int index;
+            std::cin >> index;
+            if (index > 0 && index <= static_cast<int>(extensionsActives.size())) {
+                factory.desactiverExtension(extensionsActives[index - 1]);
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 3) {
+            // Modifier le deck
+            factory.afficherInsectes();
+            std::cout << "1. Ajouter occurrence\n2. Retirer occurrence\n";
+            int action;
+            std::cin >> action;
+
+            std::cout << "Liste des insectes disponibles :\n";
+            auto insectesDisponibles = factory.getInsecteExtensionsDisponibles();  // Récupérer les insectes jouables
+            for (size_t i = 0; i < insectesDisponibles.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << insectesDisponibles[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'insecte : ";
+            int index;
+            std::cin >> index;
+
+            if (index > 0 && index <= static_cast<int>(insectesDisponibles.size())) {
+                std::string nomInsecte = insectesDisponibles[index - 1];
+                if (action == 1) {
+                    factory.ajouterOccurrence(nomInsecte);
+                } else if (action == 2) {
+                    factory.retirerOccurrence(nomInsecte);
+                } else {
+                    std::cout << "Action invalide.\n";
+                }
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 4) {
+            // Générer le deck
+            return factory.genererDeck(Hexagon(0, 0), joueur1);
+        } else {
+            std::cout << "Choix invalide. Veuillez réessayer.\n";
+        }
+    }
+}
+
 
 #include <fstream>
 #include <iostream>

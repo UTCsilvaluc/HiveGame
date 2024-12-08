@@ -161,31 +161,60 @@ public:
 
 class InsecteFactoryImpl {
 private:
-    std::map<std::string, std::function<Insecte*(Hexagon, Joueur*)>> insecteCreators;
-    std::set<std::string> insecteExtensionsActives;  // Extensions activées
-    std::vector<std::string> insecteExtensionsDisponibles;  // Extensions disponibles mais non activées
+    struct InsecteConfig {
+        std::function<Insecte*(Hexagon, Joueur*)> creator;  // Fonction de création
+        int occurrences;                                    // Nombre d'occurrences par défaut
+    };
 
+    std::map<std::string, InsecteConfig> insecteUtilisee;   // Insectes utilisés et leurs occurrences
+    std::map<std::string, InsecteConfig> insecteCreators;  // Tous les insectes disponibles
+    std::set<std::string> insecteExtensionsActives;        // Extensions activées
+    unsigned int nbMaxInsecte;
 public:
-    InsecteFactoryImpl() {
+    InsecteFactoryImpl(unsigned int maxInsecte = 13) : nbMaxInsecte(maxInsecte) {
         // Insectes de base
-        insecteCreators["Reine"] = [](Hexagon coords, Joueur* owner) { return new ReineAbeille(coords, owner); };
-        insecteCreators["Fourmi"] = [](Hexagon coords, Joueur* owner) { return new Fourmi(coords, owner); };
-        insecteCreators["Sauterelle"] = [](Hexagon coords, Joueur* owner) { return new Sauterelle(coords, owner); };
-        insecteCreators["Coccinelle"] = [](Hexagon coords, Joueur* owner) { return new Coccinelle(coords, owner); };
-        insecteCreators["Scarabee"] = [](Hexagon coords, Joueur* owner) { return new Scarabee(coords, owner); };
-        insecteCreators["Araignee"] = [](Hexagon coords, Joueur* owner) { return new Araignee(coords, owner); };
-        insecteCreators["Moustique"] = [](Hexagon coords, Joueur* owner) { return new Moustique(coords, owner); };
-        ajouterExtensionInsecte("Papillon", [](Hexagon coords, Joueur* owner) { return new Papillon(coords, owner); });
-        ajouterExtensionInsecte("Termite", [](Hexagon coords, Joueur* owner) { return new Termite(coords, owner); });
+        ajouterInsecteBase("Reine", [](Hexagon coords, Joueur* owner) { return new ReineAbeille(coords, owner); }, 1);
+        ajouterInsecteBase("Fourmi", [](Hexagon coords, Joueur* owner) { return new Fourmi(coords, owner); }, 3);
+        ajouterInsecteBase("Sauterelle", [](Hexagon coords, Joueur* owner) { return new Sauterelle(coords, owner); }, 3);
+        ajouterInsecteBase("Coccinelle", [](Hexagon coords, Joueur* owner) { return new Coccinelle(coords, owner); }, 2);
+        ajouterInsecteBase("Scarabee", [](Hexagon coords, Joueur* owner) { return new Scarabee(coords, owner); }, 2);
+        ajouterInsecteBase("Araignee", [](Hexagon coords, Joueur* owner) { return new Araignee(coords, owner); }, 2);
+        ajouterInsecteBase("Moustique", [](Hexagon coords, Joueur* owner) { return new Moustique(coords, owner); }, 1);
 
+        // Ajouter des extensions
+        ajouterExtensionInsecte("Papillon", [](Hexagon coords, Joueur* owner) { return new Papillon(coords, owner); }, 1);
+        ajouterExtensionInsecte("Termite", [](Hexagon coords, Joueur* owner) { return new Termite(coords, owner); }, 1);
+
+        // Initialisation des insectes joués
+        initialiserInsectesDeBase();
+    }
+    void initialiserInsectesDeBase() {
+        insecteUtilisee = insecteCreators;  // Copie les insectes de base comme jouables
+    }
+
+    // Ajouter un insecte de base
+    void ajouterInsecteBase(const std::string& nom, std::function<Insecte*(Hexagon, Joueur*)> creator, int occurrences) {
+        insecteCreators[nom] = {creator, occurrences};
     }
 
     Insecte* createInsecte(const std::string& type, Hexagon coords, Joueur* owner) {
         if (insecteCreators.find(type) != insecteCreators.end()) {
-            return insecteCreators[type](coords, owner);
+            // Accéder à la fonction créatrice
+            return insecteCreators[type].creator(coords, owner);
         }
         return nullptr;
     }
+    // Liste des extensions disponibles (non activées)
+    std::vector<std::string> getInsecteExtensionsDisponibles() const {
+        std::vector<std::string> extensionsDisponibles;
+        for (const auto& [nom, _] : insecteCreators) {
+            if (insecteExtensionsActives.find(nom) == insecteExtensionsActives.end()) {
+                extensionsDisponibles.push_back(nom);
+            }
+        }
+        return extensionsDisponibles;
+    }
+
 
     // Création d'un insecte pour une extension activée
     std::vector<Insecte*> createInsecteExtension(const std::string& nomExtension, Hexagon coords, Joueur* owner, int count) {
@@ -194,7 +223,7 @@ public:
             auto creator = insecteCreators.find(nomExtension);
             if (creator != insecteCreators.end()) {
                 for (int i = 0; i < count; ++i) {
-                    insectes.push_back(creator->second(coords, owner));
+                    insectes.push_back(creator->second.creator(coords, owner));
                 }
             }
         }
@@ -202,23 +231,50 @@ public:
     }
 
     // Ajouter une nouvelle extension à la liste des extensions disponibles
-    void ajouterExtensionInsecte(const std::string& nomExtension, std::function<Insecte*(Hexagon, Joueur*)> creator) {
-        if (std::find(insecteExtensionsDisponibles.begin(), insecteExtensionsDisponibles.end(), nomExtension) == insecteExtensionsDisponibles.end()) {
-            insecteCreators[nomExtension] = creator;
-            insecteExtensionsDisponibles.push_back(nomExtension);
+    void ajouterExtensionInsecte(const std::string& nom, std::function<Insecte*(Hexagon, Joueur*)> creator, int occurrences) {
+        if (insecteCreators.find(nom) == insecteCreators.end()) {
+            insecteCreators[nom] = {creator, occurrences};
         }
     }
 
     // Activer une extension d'insecte (permet d'utiliser cette extension dans le jeu)
     void activerExtension(const std::string& nomExtension) {
-        if (std::find(insecteExtensionsDisponibles.begin(), insecteExtensionsDisponibles.end(), nomExtension) != insecteExtensionsDisponibles.end()) {
+        if (insecteCreators.find(nomExtension) != insecteCreators.end()) {
             insecteExtensionsActives.insert(nomExtension);
+            insecteUtilisee[nomExtension] = insecteCreators[nomExtension];
         }
     }
 
     // Désactiver une extension d'insecte (ne permet plus de l'utiliser)
     void desactiverExtension(const std::string& nomExtension) {
         insecteExtensionsActives.erase(nomExtension);
+        insecteUtilisee.erase(nomExtension);
+    }
+    void ajouterOccurrence(const std::string& nomInsecte) {
+        if (insecteUtilisee.find(nomInsecte) != insecteUtilisee.end()) {
+            ++insecteUtilisee[nomInsecte].occurrences;
+        }
+    }
+    void retirerOccurrence(const std::string& nomInsecte) {
+        if (insecteUtilisee.find(nomInsecte) != insecteUtilisee.end() && nomInsecte != "Reine") {
+            if (--insecteUtilisee[nomInsecte].occurrences <= 0) {
+                insecteUtilisee.erase(nomInsecte);  // Supprimer si occurrences à zéro
+            }
+        }
+    }
+    std::vector<Insecte*> genererDeck(Hexagon coords, Joueur* owner) {
+        std::vector<Insecte*> deck;
+        for (const auto& [nom, config] : insecteUtilisee) {
+            for (int i = 0; i < config.occurrences; ++i) {
+                deck.push_back(config.creator(coords, owner));
+            }
+        }
+        return deck;
+    }
+    void afficherInsectes() const {
+        for (const auto& [nom, config] : insecteUtilisee) {
+            std::cout << "- " << nom << " (Occurrences : " << config.occurrences << ")\n";
+        }
     }
 
     // Liste des extensions activées
@@ -227,19 +283,6 @@ public:
     }
 
     // Liste des extensions disponibles (non activées)
-    std::vector<std::string> getInsecteExtensionsDisponibles() {
-        return insecteExtensionsDisponibles;
-    }
-    std::vector<std::string> getInsecteExtensionsNonActivees() {
-        std::vector<std::string> extensionsNonActivees;
-        for (const auto& extension : insecteExtensionsDisponibles) {
-            if (insecteExtensionsActives.find(extension) == insecteExtensionsActives.end()) {
-                extensionsNonActivees.push_back(extension);
-            }
-        }
-
-        return extensionsNonActivees;
-    }
     bool estExtensionActive(const std::string& nomExtension) {
         return insecteExtensionsActives.find(nomExtension) != insecteExtensionsActives.end();
     }
