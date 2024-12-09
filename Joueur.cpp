@@ -18,6 +18,17 @@ void Joueur::afficherDeck() const {
     }
 }
 
+Insecte* Joueur::getReineAdverse(const std::map<Hexagon, Insecte*>& plateau) const {
+    for (const auto& [position, insecte] : plateau) {
+        if (insecte != nullptr && insecte->isQueen() && insecte->getOwner() != this) {
+            return insecte; // Retourner la Reine adverse trouvée
+        }
+    }
+    return nullptr; // Pas de Reine adverse trouvée
+}
+
+
+
 int Joueur::findInsectIndexInDeck(const std::vector<Insecte*>& deck, Insecte* insecte) {
     for (size_t i = 0; i < deck.size(); ++i) {
         if (deck[i] == insecte) {
@@ -124,66 +135,141 @@ std::string Joueur::toJson() const {
     return jsonData.str();
 }
 
-void JoueurIANiveau2::protegerReine(const std::map<Hexagon, Insecte*>& plateau) {
-    // Récupérer la Reine du joueur sur le plateau
-    Insecte* reine = getQueenOnPlateau(plateau);
-    if (!reine) {
-        candidats.clear(); // Pas de Reine, donc pas de candidats
-        return;
+void JoueurIANiveau2::intersectionCandidats() {
+    if (candidats.empty()) {
+        candidats = std::move(nouveauxCandidats); // Si candidats est vide, utiliser les nouveaux candidats
+    } else {
+        std::map<Insecte*, std::vector<Hexagon>> intersection;
+
+        for (const auto& [insecte, deplacements] : candidats) {
+            if (nouveauxCandidats.count(insecte)) {
+                std::vector<Hexagon> intersectionDeplacements;
+                const auto& nouveauxDeplacements = nouveauxCandidats.at(insecte);
+
+                // Trouver l'intersection des déplacements
+                std::set_intersection(
+                    deplacements.begin(), deplacements.end(),
+                    nouveauxDeplacements.begin(), nouveauxDeplacements.end(),
+                    std::back_inserter(intersectionDeplacements)
+                );
+
+                // Ajouter l'insecte si l'intersection n'est pas vide
+                if (!intersectionDeplacements.empty()) {
+                    intersection[insecte] = std::move(intersectionDeplacements);
+                }
+            }
+        }
+
+        // Si l'intersection est vide, conserver les anciens candidats
+        if (!intersection.empty()) {
+            candidats = std::move(intersection);
+        }
     }
 
-    // Effacer les candidats précédents
-    candidats.clear();
-
-    // Récupérer les voisins de la Reine et déterminer les ennemis
-    std::vector<Hexagon> voisinsReine = getVoisins(reine->getCoords());
-    std::vector<Hexagon> ennemisVoisins = reine->getVoisinsEnnemis(voisinsReine, plateau);
-
-    // Ajouter les déplacements possibles de la Reine
-    verifierDeplacementsReine(reine, ennemisVoisins, plateau);
-
-    // Ajouter les déplacements possibles des alliés
-    verifierDeplacementsAllies(reine, voisinsReine, plateau);
-
-    if (!candidats.empty()) {
-        actionChoisie = DEPLACER;
-    }
+    nouveauxCandidats.clear(); // Réinitialiser les nouveaux candidats après utilisation
 }
 
 
 
-void JoueurIANiveau2::verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins, const std::map<Hexagon, Insecte*>& plateau) {
+void JoueurIANiveau2::protegerReine() {
+    // Récupérer la Reine du joueur sur le plateau
+    Insecte* reine = getQueenOnPlateau(getPlateau());
+    if (!reine) {
+        return;
+    }
+
+    // Récupérer les voisins de la Reine et déterminer les ennemis
+    std::vector<Hexagon> voisinsReine = getVoisins(reine->getCoords());
+    std::vector<Hexagon> ennemisVoisins = reine->getVoisinsEnnemis(voisinsReine, getPlateau());
+
+    // Vérifier s'il y a moins de 3 ennemis autour de la Reine
+    if (ennemisVoisins.size() < 3) {
+        nouveauxCandidats.clear(); // Laisser nouveauxCandidats vide
+        return;
+    }
+
+    // Ajouter les déplacements possibles de la Reine
+    nouveauxCandidats.clear(); // Réinitialiser pour cette heuristique
+    verifierDeplacementsReine(reine, ennemisVoisins);
+
+    // Ajouter les déplacements possibles des alliés
+    verifierDeplacementsAllies(reine, voisinsReine);
+
+    // Filtrer ou joindre les candidats avec les nouveaux
+    intersectionCandidats();
+}
+
+
+void JoueurIANiveau2::attaquerReine() {
+    // Récupérer la Reine adverse via Joueur::getReineAdverse
+    Insecte* reineAdverse = getReineAdverse(getPlateau());
+    if (!reineAdverse) {
+        return; // Pas de Reine adverse sur le plateau, rien à faire
+    }
+
+    // Récupérer les voisins de la Reine adverse
+    std::vector<Hexagon> voisinsReineAdverse = getVoisins(reineAdverse->getCoords());
+
+    // Réinitialiser nouveauxCandidats
+    nouveauxCandidats.clear();
+
+    // Parcourir tous les insectes alliés sur le plateau
+    for (const auto& [position, insecte] : getPlateau()) {
+        if (insecte->getOwner() == this) {
+            std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(getPlateau());
+
+            // Filtrer les déplacements pour ne garder que ceux dans les voisins de la Reine adverse
+            std::vector<Hexagon> deplacementsVersReineAdverse;
+            for (const Hexagon& deplacement : deplacementsPossibles) {
+                if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), deplacement) != voisinsReineAdverse.end()) {
+                    deplacementsVersReineAdverse.push_back(deplacement);
+                }
+            }
+
+            // Si des déplacements valides existent, ajouter l'insecte et ses déplacements à nouveauxCandidats
+            if (!deplacementsVersReineAdverse.empty()) {
+                nouveauxCandidats[insecte] = std::move(deplacementsVersReineAdverse);
+            }
+        }
+    }
+
+    // Appeler la fonction pour faire l'intersection avec les candidats existants
+    intersectionCandidats();
+}
+
+
+void JoueurIANiveau2::verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins) {
     if (ennemisVoisins.size() > 3) {
-        std::vector<Hexagon> deplacementsReine = reine->deplacementsPossibles(plateau);
+        std::vector<Hexagon> deplacementsReine = reine->deplacementsPossibles(getPlateau());
         std::vector<Hexagon> deplacementsValides;
         for (const Hexagon& deplacement : deplacementsReine) {
             // Si le déplacement éloigne la Reine de ses ennemis
             std::vector<Hexagon> nouveauxVoisins = getVoisins(deplacement);
-            std::vector<Hexagon> nouveauxEnnemisVoisins = reine->getVoisinsEnnemis(nouveauxVoisins, plateau);
+            std::vector<Hexagon> nouveauxEnnemisVoisins = reine->getVoisinsEnnemis(nouveauxVoisins, getPlateau());
             if (nouveauxEnnemisVoisins.size() < ennemisVoisins.size()) {
                 deplacementsValides.push_back(deplacement);
             }
         }
         if (!deplacementsValides.empty()) {
-            candidats[reine] = deplacementsValides; // Mettre à jour les candidats avec la Reine
+            nouveauxCandidats[reine] = deplacementsValides; // Mettre à jour les candidats avec la Reine
         }
     }
 }
 
 
-void JoueurIANiveau2::verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine, const std::map<Hexagon, Insecte*>& plateau) {
+void JoueurIANiveau2::verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine) {
     // Récupérer les alliés parmi les voisins de la Reine
     std::vector<Insecte*> voisinsAllies;
     for (const auto& voisin : voisinsReine) {
-        auto it = plateau.find(voisin);
-        if (it != plateau.end() && it->second != nullptr && it->second->getOwner() == reine->getOwner()) {
+        auto it = getPlateau().find(voisin);
+        if (it != getPlateau().end() && it->second != nullptr && it->second->getOwner() == reine->getOwner()) {
             voisinsAllies.push_back(it->second);
         }
     }
 
     // Vérifier les déplacements possibles pour chaque allié
     for (Insecte* allie : voisinsAllies) {
-        std::vector<Hexagon> deplacementsPossibles = allie->deplacementsPossibles(plateau);
+        std::vector<Hexagon> deplacementsPossibles = allie->deplacementsPossibles(getPlateau());
         std::vector<Hexagon> deplacementsValides;
         for (const Hexagon& deplacement : deplacementsPossibles) {
             // Si le déplacement éloigne l'insecte des voisins de la Reine
@@ -192,7 +278,7 @@ void JoueurIANiveau2::verifierDeplacementsAllies(Insecte* reine, const std::vect
             }
         }
         if (!deplacementsValides.empty()) {
-            candidats[allie] = deplacementsValides; // Mettre à jour les candidats avec les alliés
+            nouveauxCandidats[allie] = deplacementsValides; // Mettre à jour les candidats avec les alliés
         }
     }
 }
@@ -215,7 +301,7 @@ int JoueurIANiveau2::findIndexInOptions(Insecte* insecteChoisi, const std::map<I
         // Retrouver l'index de ce choix dans options
         for (size_t i = 0; i < options.size(); ++i) {
             if (options[i] == choix) {
-                return static_cast<int>(i);
+                return static_cast<int>(i+1);
             }
         }
     }
@@ -228,6 +314,7 @@ void JoueurIANiveau2::reinitialiserAttributs() {
     insecteChoisi = nullptr;
     positionChoisie = Hexagon();
     candidats.clear(); // Réinitialiser les candidats
+    nouveauxCandidats.clear();
 }
 
 void JoueurIANiveau2::afficherCandidats() const {
@@ -247,25 +334,26 @@ void JoueurIANiveau2::afficherCandidats() const {
 }
 
 
-HeuristiqueType JoueurIANiveau2::choisirHeuristique(const std::map<Hexagon, Insecte*>& plateau) {
-    reinitialiserAttributs(); // Réinitialiser les attributs au début de l'heuristique
+void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
 
-    // Récupérer la Reine sur le plateau
-    Insecte* reine = getQueenOnPlateau(plateau);
-    if (reine) {
-        // Vérifier si la Reine a plus de 3 voisins
-        std::vector<Hexagon> voisinsReine = getVoisins(reine->getCoords());
-        if (voisinsReine.size() > 3) {
-            protegerReine(plateau);
-            historiqueHeuristiques.push_back(PROTEGER_REINE);
-            return PROTEGER_REINE;
-        }
+    // Appliquer les heuristiques de déplacement
+    protegerReine();
+    attaquerReine();
+
+    // Prioriser les candidats
+    if (!candidats.empty()) {
+        actionChoisie = DEPLACER;
     }
-    // Ajouter d'autres heuristiques ici si nécessaire
-
-    historiqueHeuristiques.push_back(AUCUN_HEURISTIQUE);
-    return AUCUN_HEURISTIQUE;
 }
+
+
+void JoueurIANiveau2::choisirHeuristiquePourPlacer() {
+    // Filtrer ou prioriser les candidats selon les heuristiques (par exemple, proximité des ennemis)
+    if (!candidats.empty()) {
+        actionChoisie = PLACER;
+    }
+}
+
 
 void JoueurIANiveau2::afficherHistoriqueHeuristiques() const {
     std::cout << "Historique des heuristiques utilisées : ";
@@ -290,22 +378,48 @@ void JoueurIANiveau2::afficherHistoriqueHeuristiques() const {
 
 
 
-int JoueurIANiveau2::getInputForAction(const std::map<Hexagon, Insecte*>& plateau) {
-    // Appeler l'heuristique et récupérer l'action
-    HeuristiqueType heuristiqueChoisie = choisirHeuristique(plateau);
+int JoueurIANiveau2::getInputForAction() {
+    candidats.clear(); // Réinitialiser les candidats
 
-    // Afficher l'historique des heuristiques
+    // Calculer la phase du jeu
+    int tour = getTour();
+    float probaPlacer = 0.0, probaDeplacer = 0.0;
+
+    if (tour <= 6 || getDeckSize() > 0.75 * tailleDeckInitiale()) {
+        // Début de jeu
+        probaPlacer = 0.8;
+        probaDeplacer = 0.2;
+    } else if (tour <= 12 || (getDeckSize() > 0.25 * tailleDeckInitiale())) {
+        // Milieu de jeu
+        probaPlacer = 0.5;
+        probaDeplacer = 0.5;
+    } else {
+        // Fin de jeu
+        probaPlacer = 0.3;
+        probaDeplacer = 0.7;
+    }
+
+    // Générer une action basée sur les probabilités
+    float choix = randomFloat();
+    if (choix < probaPlacer) {
+        choisirHeuristiquePourPlacer();
+    } else {
+        choisirHeuristiquePourDeplacer();
+    }
+
+    // Afficher les informations pour le débogage
     afficherHistoriqueHeuristiques();
     afficherCandidats();
 
-    // Si une action a été choisie, la retourner
+    // Retourner l'action choisie si disponible
     if (actionChoisie != AUCUN_ACTION) {
         return static_cast<int>(actionChoisie);
     }
 
-    // Si aucune heuristique n'a fonctionné, retourner une action aléatoire
+    // Si aucune action n'a été trouvée, retourner une action aléatoire
     return randomChoice();
 }
+
 
 
 

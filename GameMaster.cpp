@@ -25,7 +25,7 @@ void GameMaster::startGame() {
     } else if (modeIA == 1) {
         joueur2 = new JoueurIA("IA");
     }else{
-        joueur2 = new JoueurIANiveau2("IA");
+        joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour);
     }
 
     std::cout << "Joueur 1 cr�� : " << joueur1->getName() << std::endl;
@@ -191,7 +191,7 @@ void GameMaster::jouer() {
                 std::cout << "Aucun mouvement possible, vous devez placer un pion.\n";
                 choice = 2;
             } else {
-                choice = current->getInputForAction(plateau.getPlateauMap());
+                choice = current->getInputForAction();
             }
         }
         while (true) {
@@ -201,7 +201,7 @@ void GameMaster::jouer() {
                     break;
                 } else {
                     std::cout << "Aucune action � annuler, essayez une autre option.\n";
-                    choice = current->getInputForAction(plateau.getPlateauMap());
+                    choice = current->getInputForAction();
                     continue;
                 }
             } else if (choice == 1) {
@@ -214,7 +214,7 @@ void GameMaster::jouer() {
                 break;
             } else {
                 std::cout << "Choix invalide. Veuillez r�essayer.\n";
-                choice = current->getInputForAction(plateau.getPlateauMap());
+                choice = current->getInputForAction();
             }
         }
         tour++;

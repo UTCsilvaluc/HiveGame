@@ -27,11 +27,13 @@ public:
         nom = n;
         deck = d.empty() ? deckDeBase(this) : d;
     }
+
     const std::string &getName() const { return nom; }
     const std::vector<Insecte*>& getDeck() const { return deck; }
     Insecte* getQueen() const;
     Insecte* getQueenOnPlateau(const std::map<Hexagon, Insecte*>& plateau) const;
     int findInsectIndexInDeck(const std::vector<Insecte*>& deck, Insecte* insecte);
+    Insecte* getReineAdverse(const std::map<Hexagon, Insecte*>& plateau) const;
 
     int getQueenIndex() const;
     bool hasQueen() const;
@@ -67,7 +69,7 @@ public:
     std::vector<Insecte*> getInsectesDuJoueur(const std::map<Hexagon, Insecte*>& plateauMap) const ;
 
     // Méthodes virtuelles pures
-    virtual int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) = 0; // Choix entre déplacer, placer ou annuler
+    virtual int getInputForAction() = 0; // Choix entre déplacer, placer ou annuler
     virtual Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) = 0; // Coordonnées du premier placement
     virtual int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) = 0; // Choisir un insecte à déplacer
     virtual int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) = 0; // Choisir un mouvement pour un insecte
@@ -80,7 +82,7 @@ class JoueurHumain : public Joueur{
 public:
     JoueurHumain(const std::string& nom) : Joueur(nom) {}
 
-    int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) {
+    int getInputForAction() {
         int choice = 0;
         while (true) {
             std::cout << "Que voulez-vous faire ?\n"
@@ -141,39 +143,39 @@ public:
         generator = std::default_random_engine(rd());
     }
 
-    int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) {
+    int getInputForAction() {
         return randomChoice();
     }
 
     Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour){
-        //A implémenter si on veut faire commencer IA ou faire jouer IA contre IA
+        // À implémenter si on veut faire commencer IA ou faire jouer IA contre IA
         return Hexagon(0,0);
     }
 
-    int getInputForDeckIndex(){
+    int getInputForDeckIndex() {
         return randomDeckChoice();
     }
 
-    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles){
+    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles) {
         return randomHexagonIndexChoice(placementsPossibles);
     }
 
-    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur){
+    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) {
         return randomPionIndexChoice(insectesDuJoueur);
     }
 
-    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles){
+    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) {
         return randomHexagonIndexChoice(deplacementsPossibles);
     }
 
     // Fonction pour choisir aléatoirement entre "poser" ou "déplacer"
-    int randomChoice(){
+    int randomChoice() {
         std::uniform_int_distribution<int> distribution(1, 2);  // Distribution entre 1 et 2
         return distribution(generator);  // Retourne 1 ("poser") ou 2 ("déplacer")
     }
 
     // Fonction pour choisir un Hexagon aléatoire parmi les options de déplacement disponibles
-    int randomHexagonIndexChoice(const std::vector<Hexagon>& options){
+    int randomHexagonIndexChoice(const std::vector<Hexagon>& options) {
         if (options.empty()) {
             throw std::runtime_error("Aucune option possible");
         }
@@ -182,7 +184,7 @@ public:
     }
 
     // Fonction pour choisir un Insecte aléatoire du deck du joueur
-    int randomDeckChoice(){
+    int randomDeckChoice() {
         if (getDeckSize() == 0) {
             throw std::runtime_error("Deck vide");
         }
@@ -191,12 +193,17 @@ public:
     }
 
     // Fonction pour choisir aléatoirement un index pion du plateau appartenant au joueur
-    int randomPionIndexChoice(std::vector<Insecte*> insectesDuJoueur){
+    int randomPionIndexChoice(std::vector<Insecte*> insectesDuJoueur) {
         if (insectesDuJoueur.empty()) {
             throw std::runtime_error("Aucun pion appartenant au joueur sur le plateau");
         }
+        std::uniform_int_distribution<int> distribution(0, insectesDuJoueur.size() - 1);
+        return distribution(generator);
+    }
 
-        std::uniform_int_distribution<int> distribution(0,insectesDuJoueur.size() - 1);
+    // Nouvelle fonction : Générer un float aléatoire entre min et max
+    float randomFloat(float min = 0.0, float max = 1.0) {
+        std::uniform_real_distribution<float> distribution(min, max);
         return distribution(generator);
     }
 
@@ -204,8 +211,8 @@ public:
         std::uniform_int_distribution<int> distribution(min, max);
         return distribution(generator);
     }
-
 };
+
 
 
 
@@ -222,12 +229,28 @@ private:
     ActionType actionChoisie;                           // PLACER, DEPLACER, AUCUN
     Hexagon positionChoisie;                            // Pour mémoriser la position choisie
     Insecte* insecteChoisi;                             // Pour mémoriser l'insecte choisi (peut être dans le deck ou sur le plateau)
+    std::map<Insecte*, std::vector<Hexagon>> nouveauxCandidats; // Nouveaux candidats pour chaque heuristique
     std::map<Insecte*, std::vector<Hexagon>> candidats; // Map pour stocker les insectes et leurs déplacements possibles
     std::vector<HeuristiqueType> historiqueHeuristiques; // Historique des heuristiques choisies
+    const std::map<Hexagon, Insecte*>* plateau;         // Pointeur vers le plateau
+    unsigned int* tour;                                 // Pointeur vers le numéro du tour
 
 public:
-    JoueurIANiveau2(std::string nom) : JoueurIA(nom), actionChoisie(AUCUN_ACTION), positionChoisie(), insecteChoisi(nullptr), historiqueHeuristiques() {}
+    // Constructeur mis à jour pour inclure le plateau et le tour
+    JoueurIANiveau2(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef)
+        : JoueurIA(nom),
+          actionChoisie(AUCUN_ACTION),
+          positionChoisie(),
+          insecteChoisi(nullptr),
+          historiqueHeuristiques(),
+          plateau(plateauRef),
+          tour(tourRef) {}
 
+    // Getter pour le plateau
+    const std::map<Hexagon, Insecte*>& getPlateau() const { return *plateau; }
+
+    // Getter pour le tour
+    unsigned int getTour() const { return *tour; }
     int getActionPourGameMaster() const { return static_cast<int>(actionChoisie); }
     Hexagon getPositionChoisie() const { return positionChoisie; }
     Insecte* getInsecteChoisi() const { return insecteChoisi; }
@@ -237,21 +260,35 @@ public:
     // Setter pour l'attribut candidats
     void setCandidats(const std::map<Insecte*, std::vector<Hexagon>>& nouveauxCandidats) {candidats = nouveauxCandidats;}
 
-    HeuristiqueType choisirHeuristique(const std::map<Hexagon, Insecte*>& plateau);
+    int evaluerDeplacement();
+    int evaluerPlacement();
+
+    void choisirHeuristiquePourDeplacer();
+    void choisirHeuristiquePourPlacer();
+
     void reinitialiserAttributs();
     void afficherHistoriqueHeuristiques() const;
     void afficherCandidats() const;
 
-    void choisirAction(std::map<Hexagon, Insecte*>& plateau);
+    void choisirAction();
 
-    void protegerReine(const std::map<Hexagon, Insecte*>& plateau);
-    void verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins, const std::map<Hexagon, Insecte*>& plateau);
-    void verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine, const std::map<Hexagon, Insecte*>& plateau);
+    void intersectionCandidats();
+    void protegerReine();
+    void attaquerReine();
+    void verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins);
+    void verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine);
+
+    static size_t tailleDeckInitiale() {
+        // Utiliser une classe dérivée pour l'instance temporaire
+        JoueurHumain joueurTemporaire("temp"); // JoueurHumain est une implémentation concrète de Joueur
+        std::vector<Insecte*> deckTemporaire = deckDeBase(&joueurTemporaire);
+        return deckTemporaire.size();
+    }
 
     int findIndexInOptions(Insecte* insecteChoisi, const std::map<Insecte*, std::vector<Hexagon>>& candidats, const std::vector<Hexagon>& options);
 
 
-    int getInputForAction(const std::map<Hexagon, Insecte*>& plateau) override;
+    int getInputForAction() override;
     Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) override{
         //A implémenter si on veut faire commencer IA ou faire jouer IA contre IA
         return Hexagon(0,0);

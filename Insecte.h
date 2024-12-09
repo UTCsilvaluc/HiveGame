@@ -40,7 +40,6 @@ public:
     Insecte(std::string nom, Hexagon coords, Joueur *owner) : coords(coords), nom(nom), owner(owner), callback(nullptr) {}
 
     Hexagon getCoords() const { return coords; }
-    Insecte* trouverReine(Joueur* joueur, const std::map<Hexagon, Insecte*>& plateau);
     std::string getNom() const { return nom; }
     const Joueur* getOwner() const { return owner; }
     virtual bool isQueen() const {return false;} // Par défaut, un insecte n'est pas une Reine

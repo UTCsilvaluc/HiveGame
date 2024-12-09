@@ -68,9 +68,6 @@ public:
     const std::vector<Insecte*>& getInsectesSurPlateau() const {
         return insectesSurPlateau;
     }
-    std::map<Hexagon, Insecte*> getPlateauMap() {
-        return plateauMap;
-    }
     std::vector<Hexagon> getVoisinsInsectePlateau(Insecte *insecte);
 
 
