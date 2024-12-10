@@ -272,6 +272,8 @@ public:
     void remplirCandidatsAvecDeck();
     void filtrerPrioriteFourmies();
     int evaluerCohesion(const Hexagon& emplacement) const;
+    int evaluerDeplacementsApresPlacement(const Hexagon& emplacement, Insecte* insecte) const;
+    void filtrerMeilleursPlacementsPourDeplacements(int nombreMaxPlacements);
 
     void choisirAction();
 

@@ -311,6 +311,7 @@ int JoueurIANiveau2::findIndexInOptions(Insecte* insecteChoisi, const std::map<I
         // Retrouver l'index de ce choix dans options
         for (size_t i = 0; i < options.size(); ++i) {
             if (options[i] == choix) {
+                reinitialiserAttributs();
                 return static_cast<int>(i+1);
             }
         }
@@ -375,6 +376,83 @@ void JoueurIANiveau2::filtrerPrioriteFourmies() {
     }
 }
 
+int JoueurIANiveau2::evaluerCohesion(const Hexagon& emplacement) const {
+    std::vector<Hexagon> voisins = getVoisins(emplacement);
+    int score = 0;
+
+    for (const Hexagon& voisin : voisins) {
+        auto it = plateau->find(voisin);
+        if (it != plateau->end() && it->second && it->second->getOwner() == this) {
+            score++;
+        }
+    }
+
+    return score;
+}
+
+int JoueurIANiveau2::evaluerDeplacementsApresPlacement(const Hexagon& emplacement, Insecte* insecte) const {
+    // Créer une copie du plateau pour la simulation
+    std::map<Hexagon, Insecte*> plateauSimule = *plateau;
+
+    // Simuler le placement temporaire
+    plateauSimule[emplacement] = insecte;
+
+    // Obtenir les déplacements possibles pour l'insecte placé
+    std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(plateauSimule);
+
+    // Calculer le score de base
+    int score = deplacementsPossibles.size();
+
+    // Bonus si un déplacement peut attaquer la Reine adverse
+    Insecte* reineAdverse = getReineAdverse(plateauSimule);
+    if (reineAdverse) {
+        std::vector<Hexagon> voisinsReineAdverse = getVoisins(reineAdverse->getCoords());
+        for (const Hexagon& deplacement : deplacementsPossibles) {
+            if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), deplacement) != voisinsReineAdverse.end()) {
+                score += 10; // Ajouter un bonus si un déplacement est adjacent à la Reine adverse
+                break; // Bonus unique pour cet emplacement
+            }
+        }
+    }
+
+    return score;
+}
+
+void JoueurIANiveau2::filtrerMeilleursPlacementsPourDeplacements(int nombreMaxPlacements) {
+    nouveauxCandidats.clear();
+
+    for (const auto& [insecte, placements] : candidats) {
+        // Liste pour stocker les emplacements avec leur score
+        std::vector<std::pair<Hexagon, int>> emplacementsAvecScore;
+
+        for (const Hexagon& emplacement : placements) {
+            int score = evaluerDeplacementsApresPlacement(emplacement, insecte);
+            emplacementsAvecScore.emplace_back(emplacement, score);
+        }
+
+        // Trier les emplacements par score décroissant
+        std::sort(emplacementsAvecScore.begin(), emplacementsAvecScore.end(),
+                  [](const auto& a, const auto& b) {
+                      return a.second > b.second; // Comparaison basée sur le score
+                  });
+
+        // Garder uniquement les meilleurs placements
+        std::vector<Hexagon> meilleursPlacements;
+        for (int i = 0; i < std::min(static_cast<int>(emplacementsAvecScore.size()), nombreMaxPlacements); ++i) {
+            meilleursPlacements.push_back(emplacementsAvecScore[i].first);
+        }
+
+        if (!meilleursPlacements.empty()) {
+            nouveauxCandidats[insecte] = std::move(meilleursPlacements);
+        }
+    }
+
+    intersectionCandidats(); // Mise à jour des candidats avec les meilleurs placements
+    nouveauxCandidats.clear(); // Nettoyage
+}
+
+
+
 
 
 void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
@@ -392,7 +470,7 @@ void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
 
 void JoueurIANiveau2::choisirHeuristiquePourPlacer() {
     remplirCandidatsAvecDeck();
-    filtrerPrioriteFourmies();
+    filtrerMeilleursPlacementsPourDeplacements(3);
     // Filtrer ou prioriser les candidats selon les heuristiques (par exemple, proximité des ennemis)
     if (!candidats.empty()) {
         actionChoisie = PLACER;
@@ -490,7 +568,7 @@ int JoueurIANiveau2::getInputForPlacementIndex(std::vector<Hexagon> placementsPo
     if (candidats.empty() || !insecteChoisi) {
         return randomHexagonIndexChoice(placementsPossibles); // Fallback : choisir une position aléatoire
     }
-
+    afficherCandidats();
     return findIndexInOptions(insecteChoisi, candidats, placementsPossibles);
 }
 
