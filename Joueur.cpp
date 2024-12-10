@@ -256,6 +256,16 @@ void JoueurIANiveau2::verifierDeplacementsReine(Insecte* reine, const std::vecto
     }
 }
 
+void JoueurIANiveau2::remplirCandidatsAvecDeck() {
+    candidats.clear(); // Réinitialiser les candidats
+
+    // Ajouter chaque insecte du deck à candidats avec les mêmes placements possibles
+    for (Insecte* insecte : getDeck()) {
+        candidats[insecte] = insecte->getPlacementsPossibles(getPlateau());
+    }
+}
+
+
 
 void JoueurIANiveau2::verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine) {
     // Récupérer les alliés parmi les voisins de la Reine
@@ -333,6 +343,39 @@ void JoueurIANiveau2::afficherCandidats() const {
     }
 }
 
+void JoueurIANiveau2::filtrerPrioriteFourmies() {
+    // Vérifier s'il y a des fourmies dans les candidats
+    bool aDesFourmies = false;
+    for (const auto& [insecte, placements] : candidats) {
+        if (insecte->getNom() == "Fourmi") {
+            aDesFourmies = true;
+            break;
+        }
+    }
+
+    // Si aucune fourmi, ne rien faire
+    if (!aDesFourmies) {
+        return;
+    }
+
+    // Générer une probabilité pour prioriser les fourmies
+    float chance = randomFloat(0.0f, 1.0f); // Fonction utilitaire pour générer un float entre 0 et 1
+    if (chance <= 0.75f) {
+        // Garder uniquement les fourmies dans les candidats
+        std::map<Insecte*, std::vector<Hexagon>> nouveauxCandidats;
+
+        for (const auto& [insecte, placements] : candidats) {
+            if (insecte->getNom() == "Fourmi") {
+                nouveauxCandidats[insecte] = placements;
+            }
+        }
+
+        candidats = std::move(nouveauxCandidats); // Remplacer les candidats par ceux filtrés
+        nouveauxCandidats.clear();
+    }
+}
+
+
 
 void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
 
@@ -348,6 +391,8 @@ void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
 
 
 void JoueurIANiveau2::choisirHeuristiquePourPlacer() {
+    remplirCandidatsAvecDeck();
+    filtrerPrioriteFourmies();
     // Filtrer ou prioriser les candidats selon les heuristiques (par exemple, proximité des ennemis)
     if (!candidats.empty()) {
         actionChoisie = PLACER;

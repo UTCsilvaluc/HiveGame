@@ -269,6 +269,9 @@ public:
     void reinitialiserAttributs();
     void afficherHistoriqueHeuristiques() const;
     void afficherCandidats() const;
+    void remplirCandidatsAvecDeck();
+    void filtrerPrioriteFourmies();
+    int evaluerCohesion(const Hexagon& emplacement) const;
 
     void choisirAction();
 
