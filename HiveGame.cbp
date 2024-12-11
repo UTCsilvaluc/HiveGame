@@ -32,19 +32,19 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 		</Compiler>
-		<Unit filename="include/Action.h" />
-		<Unit filename="include/GameMaster.h" />
-		<Unit filename="include/Hexagon.h" />
-		<Unit filename="include/Insecte.h" />
-		<Unit filename="include/Joueur.h" />
-		<Unit filename="include/Plateau.h" />
+		<Unit filename="Action.cpp" />
+		<Unit filename="Action.h" />
+		<Unit filename="GameMaster.cpp" />
+		<Unit filename="GameMaster.h" />
+		<Unit filename="Hexagon.cpp" />
+		<Unit filename="Hexagon.h" />
+		<Unit filename="Insecte.cpp" />
+		<Unit filename="Insecte.h" />
+		<Unit filename="Joueur.cpp" />
+		<Unit filename="Joueur.h" />
+		<Unit filename="Plateau.cpp" />
+		<Unit filename="Plateau.h" />
 		<Unit filename="main.cpp" />
-		<Unit filename="src/Action.cpp" />
-		<Unit filename="src/GameMaster.cpp" />
-		<Unit filename="src/Hexagon.cpp" />
-		<Unit filename="src/Insecte.cpp" />
-		<Unit filename="src/Joueur.cpp" />
-		<Unit filename="src/Plateau.cpp" />
 		<Extensions />
 	</Project>
 </CodeBlocks_project_file>

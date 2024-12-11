@@ -210,11 +210,23 @@ std::vector<Hexagon> deplacementsPossiblesScarabee(Hexagon coords, std::map<Hexa
     if(p[coords]->getDessous()==nullptr){
         std::vector<Hexagon> deplacements;
         std::set<Hexagon> chemin;
-        std::vector<Hexagon> voisins = getVoisins(coords);
+        std::vector<Hexagon> voisinsOccupes = casesAdjacentesOccupees(coords, p);
         if(getChaineBrisee(coords, p, chemin)){
             return deplacements;
         }
-        return voisins;
+        std::vector<Hexagon> voisinsVides = casesAdjacentesVides(coords, p);
+        std::map<Hexagon, Insecte*> p1 = p;
+        p1.erase(coords);
+        for (size_t i = 0; i < voisinsVides.size();) {
+            if (casesAdjacentesOccupees(voisinsVides[i], p1).empty() || !getGlissementPossible(coords, p, voisinsVides[i])) {
+                voisinsVides.erase(voisinsVides.begin() + i);
+            } else {
+                ++i;
+            }
+        }
+        deplacements = voisinsVides;
+        deplacements.insert(deplacements.end(), voisinsOccupes.begin(), voisinsOccupes.end());
+        return deplacements;
     }
     else{
         Insecte* s = p[coords]->getDessous();
