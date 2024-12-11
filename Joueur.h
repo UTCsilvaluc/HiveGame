@@ -282,6 +282,10 @@ public:
     void attaquerReine();
     void verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins);
     void verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine);
+    int evaluerAction(const Hexagon& emplacement, Insecte* insecte, const std::map<Hexagon, Insecte*>& plateau) const;
+    void evaluerPlacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxPlacements);
+    void evaluerDeplacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxDeplacements);
+    void remplirCandidatsAvecPlateau();
 
     static size_t tailleDeckInitiale() {
         // Utiliser une classe dérivée pour l'instance temporaire

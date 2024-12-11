@@ -477,15 +477,118 @@ void JoueurIANiveau2::filtrerMeilleursPlacementsPourDeplacements(int nombreMaxPl
     nouveauxCandidats.clear(); // Nettoyage
 }
 
+int JoueurIANiveau2::evaluerAction(const Hexagon& emplacement, Insecte* insecte, const std::map<Hexagon, Insecte*>& plateau) const {
+    // Simuler le placement ou le dÃ©placement
+    std::map<Hexagon, Insecte*> plateauTest = plateau;
+    plateauTest[emplacement] = insecte;
+
+    // CritÃ¨re 1 : Nombre de dÃ©placements possibles aprÃ¨s l'action
+    std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(plateauTest);
+    int score = deplacementsPossibles.size();
+
+    // CritÃ¨re 2 : Bonus pour attaquer la Reine adverse
+    Insecte* reineAdverse = getReineAdverse(plateauTest);
+    if (reineAdverse) {
+        std::vector<Hexagon> voisinsReineAdverse = getVoisins(reineAdverse->getCoords());
+        for (const Hexagon& deplacement : deplacementsPossibles) {
+            if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), deplacement) != voisinsReineAdverse.end()) {
+                score += 10; // Bonus pour menacer la Reine adverse
+                break;
+            }
+        }
+    }
+
+    // CritÃ¨re 3 : CohÃ©sion avec la ruche
+    int cohesionScore = evaluerCohesion(emplacement);
+    score += cohesionScore;
+
+    return score;
+}
+
+void JoueurIANiveau2::evaluerPlacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxPlacements) {
+    nouveauxCandidats.clear();
+
+    for (const auto& [insecte, placements] : candidats) {
+        std::vector<std::pair<Hexagon, int>> placementsAvecScore;
+
+        for (const Hexagon& placement : placements) {
+            int score = evaluerAction(placement, insecte, getPlateau());
+            placementsAvecScore.emplace_back(placement, score);
+        }
+
+        // Trier les dÃ©placements par score dÃ©croissant
+        std::sort(placementsAvecScore.begin(), placementsAvecScore.end(),
+                  [](const auto& a, const auto& b) {
+                      return a.second > b.second;
+                  });
+
+        // Garder les meilleurs dÃ©placements
+        std::vector<Hexagon> meilleursPlacements;
+        for (int i = 0; i < std::min(static_cast<int>(placementsAvecScore.size()), nombreMaxPlacements); ++i) {
+            meilleursPlacements.push_back(placementsAvecScore[i].first);
+        }
+
+        if (!meilleursPlacements.empty()) {
+            nouveauxCandidats[insecte] = std::move(meilleursPlacements);
+        }
+    }
+
+    intersectionCandidats();
+    nouveauxCandidats.clear();
+}
 
 
 
+void JoueurIANiveau2::evaluerDeplacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxDeplacements) {
+    nouveauxCandidats.clear();
+
+    for (const auto& [insecte, deplacements] : candidats) {
+        std::vector<std::pair<Hexagon, int>> deplacementsAvecScore;
+
+        for (const Hexagon& deplacement : deplacements) {
+            int score = evaluerAction(deplacement, insecte, getPlateau());
+            deplacementsAvecScore.emplace_back(deplacement, score);
+        }
+
+        // Trier les dÃ©placements par score dÃ©croissant
+        std::sort(deplacementsAvecScore.begin(), deplacementsAvecScore.end(),
+                  [](const auto& a, const auto& b) {
+                      return a.second > b.second;
+                  });
+
+        // Garder les meilleurs dÃ©placements
+        std::vector<Hexagon> meilleursDeplacements;
+        for (int i = 0; i < std::min(static_cast<int>(deplacementsAvecScore.size()), nombreMaxDeplacements); ++i) {
+            meilleursDeplacements.push_back(deplacementsAvecScore[i].first);
+        }
+
+        if (!meilleursDeplacements.empty()) {
+            nouveauxCandidats[insecte] = std::move(meilleursDeplacements);
+        }
+    }
+
+    intersectionCandidats();
+    nouveauxCandidats.clear();
+}
+
+
+
+void JoueurIANiveau2::remplirCandidatsAvecPlateau() {
+    candidats.clear(); // RÃ©initialiser les candidats
+
+    for (const auto& [position, insecte] : getPlateau()) {
+        if (insecte->getOwner() == this) { // VÃ©rifier que l'insecte appartient au joueur
+            std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(getPlateau());
+            if (!deplacementsPossibles.empty()) {
+                candidats[insecte] = std::move(deplacementsPossibles); // Ajouter l'insecte et ses dÃ©placements possibles
+            }
+        }
+    }
+}
 
 void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
-
-    // Appliquer les heuristiques de déplacement
-    protegerReine();
-    attaquerReine();
+    remplirCandidatsAvecPlateau();
+    evaluerDeplacements(candidats, 2); // Utilise la nouvelle fonction unifiÃ©e
 
     // Prioriser les candidats
     if (!candidats.empty()) {
@@ -496,12 +599,13 @@ void JoueurIANiveau2::choisirHeuristiquePourDeplacer() {
 
 void JoueurIANiveau2::choisirHeuristiquePourPlacer() {
     remplirCandidatsAvecDeck();
-    filtrerMeilleursPlacementsPourDeplacements(3);
-    // Filtrer ou prioriser les candidats selon les heuristiques (par exemple, proximité des ennemis)
+    evaluerPlacements(candidats, 2); // Utilise la nouvelle fonction unifiÃ©e
+    // Filtrer ou prioriser les candidats selon les heuristiques (par exemple, proximitÃ© des ennemis)
     if (!candidats.empty()) {
         actionChoisie = PLACER;
     }
 }
+
 
 
 void JoueurIANiveau2::afficherHistoriqueHeuristiques() const {
