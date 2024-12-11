@@ -417,7 +417,33 @@ int JoueurIANiveau2::evaluerDeplacementsApresPlacement(const Hexagon& emplacemen
 
     return score;
 }
+Insecte* Joueur::contientInsecte(const std::string& nomInsecte) const {
+    for (Insecte* insecte : deck) {
+        if (insecte->getNom() == nomInsecte) {
+            return insecte;
+        }
+    }
+    return nullptr;
+}
 
+void Joueur::ajouterInsecte(Insecte* insecte) {
+    if (insecte == nullptr) {
+        std::cerr << "Erreur : Impossible d'ajouter un insecte nul au deck." << std::endl;
+        return;
+    }
+    deck.push_back(insecte);
+}
+
+std::vector<Insecte*> Joueur::getInsectesDuJoueur(const std::map<Hexagon, Insecte*>& plateauMap) const {
+    std::vector<Insecte*> insectesDuJoueur;
+    for (const auto& pair : plateauMap) {
+        Insecte* insecte = pair.second;
+        if (insecte->getOwner() == this) {
+            insectesDuJoueur.push_back(insecte);
+        }
+    }
+    return insectesDuJoueur;
+}
 void JoueurIANiveau2::filtrerMeilleursPlacementsPourDeplacements(int nombreMaxPlacements) {
     nouveauxCandidats.clear();
 
