@@ -477,99 +477,175 @@ void JoueurIANiveau2::filtrerMeilleursPlacementsPourDeplacements(int nombreMaxPl
     nouveauxCandidats.clear(); // Nettoyage
 }
 
-int JoueurIANiveau2::evaluerAction(const Hexagon& emplacement, Insecte* insecte, const std::map<Hexagon, Insecte*>& plateau) const {
-    // Simuler le placement ou le dÃ©placement
-    std::map<Hexagon, Insecte*> plateauTest = plateau;
-    plateauTest[emplacement] = insecte;
+int JoueurIANiveau2::evaluerPlacementAction(Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateau) const {
+    // On simule le placement sur un plateau temporaire
+    std::map<Hexagon, Insecte*> plateauSimule = plateau;
+    plateauSimule[emplacement] = insecte; // placer virtuellement l'insecte
 
-    // CritÃ¨re 1 : Nombre de dÃ©placements possibles aprÃ¨s l'action
-    std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(plateauTest);
-    int score = deplacementsPossibles.size();
+    // Critère 1 : Cohésion avec la ruche
+    int score = evaluerCohesion(emplacement);
 
-    // CritÃ¨re 2 : Bonus pour attaquer la Reine adverse
-    Insecte* reineAdverse = getReineAdverse(plateauTest);
+    // Critère 2 : Opportunités de déplacement après placement
+    // On regarde les déplacements possibles de l'insecte après l'avoir placé
+    // (Cela permet de savoir si ce placement offre un potentiel offensif ou défensif plus tard)
+    std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(plateauSimule);
+    score += static_cast<int>(deplacementsPossibles.size());
+
+    // Critère 3 : Bonus si un déplacement futur permet de menacer la reine adverse
+    Insecte* reineAdverse = getReineAdverse(plateauSimule);
     if (reineAdverse) {
         std::vector<Hexagon> voisinsReineAdverse = getVoisins(reineAdverse->getCoords());
-        for (const Hexagon& deplacement : deplacementsPossibles) {
-            if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), deplacement) != voisinsReineAdverse.end()) {
-                score += 10; // Bonus pour menacer la Reine adverse
+        for (const Hexagon& dep : deplacementsPossibles) {
+            if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), dep) != voisinsReineAdverse.end()) {
+                score += 10; // Bonus si un futur déplacement pourrait menacer la reine adverse
                 break;
             }
         }
     }
 
-    // CritÃ¨re 3 : CohÃ©sion avec la ruche
-    int cohesionScore = evaluerCohesion(emplacement);
-    score += cohesionScore;
+    return score;
+}
+
+int JoueurIANiveau2::evaluerDeplacementAction(Insecte* insecte, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const {
+    // On simule le déplacement sur un plateau temporaire
+    std::map<Hexagon, Insecte*> plateauSimule = plateau;
+
+    // Retirer l'insecte de sa position actuelle
+    // On suppose que l'insecte est déjà sur le plateau, on le trouve pour le déplacer.
+    Hexagon anciennePos = insecte->getCoords();
+    plateauSimule.erase(anciennePos);
+    plateauSimule[nouvelEmplacement] = insecte; // Déplacer virtuellement l'insecte
+
+    // Critère 1 : Cohésion après déplacement
+    int score = evaluerCohesion(nouvelEmplacement);
+
+    // Critère 2 : Menace sur la reine adverse
+    Insecte* reineAdverse = getReineAdverse(plateauSimule);
+    if (reineAdverse) {
+        // Si le nouvel emplacement est adjacent à la reine adverse
+        std::vector<Hexagon> voisinsReineAdverse = getVoisins(reineAdverse->getCoords());
+        if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), nouvelEmplacement) != voisinsReineAdverse.end()) {
+            score += 10; // Bonus si l'on menace directement la reine adverse
+        }
+    }
 
     return score;
 }
 
+
+std::vector<std::pair<Hexagon,int>> JoueurIANiveau2::evaluerEtTrierMouvements(Insecte* insecte, const std::vector<Hexagon>& options, bool estPlacement) const {
+    std::vector<std::pair<Hexagon,int>> mouvementsAvecScore;
+    for (const Hexagon& option : options) {
+        int score = estPlacement ?
+                    evaluerPlacementAction(insecte, option, getPlateau()) :
+                    evaluerDeplacementAction(insecte, option, getPlateau());
+        mouvementsAvecScore.emplace_back(option, score);
+    }
+
+    // Tri par score décroissant
+    std::sort(mouvementsAvecScore.begin(), mouvementsAvecScore.end(),
+              [](const auto& a, const auto& b) {
+                  return a.second > b.second;
+              });
+    return mouvementsAvecScore;
+}
+
+std::vector<Hexagon> JoueurIANiveau2::extraireMeilleursMouvements(const std::vector<std::pair<Hexagon,int>>& mouvementsTries, int nombreMax) const {
+    std::vector<Hexagon> meilleurs;
+    for (int i = 0; i < std::min((int)mouvementsTries.size(), nombreMax); ++i) {
+        meilleurs.push_back(mouvementsTries[i].first);
+    }
+    return meilleurs;
+}
+
+int JoueurIANiveau2::calculerScoreMaxParInsecte(Insecte* insecte, bool estPlacement) const {
+    auto it = nouveauxCandidats.find(insecte);
+    if (it == nouveauxCandidats.end() || it->second.empty()) {
+        return std::numeric_limits<int>::min();
+    }
+
+    int meilleurScore = std::numeric_limits<int>::min();
+    for (const Hexagon& option : it->second) {
+        int score = estPlacement ?
+                    evaluerPlacementAction(insecte, option, getPlateau()) :
+                    evaluerDeplacementAction(insecte, option, getPlateau());
+        if (score > meilleurScore) {
+            meilleurScore = score;
+        }
+    }
+
+    return meilleurScore;
+}
+
+void JoueurIANiveau2::filtrerMeilleursInsectes(std::map<Insecte*, std::vector<Hexagon>>& insectesCandidats, int nombreMeilleursInsectes, bool estPlacement) {
+    if (insectesCandidats.empty()) return;
+
+    std::vector<std::pair<Insecte*, int>> insectesAvecScore;
+    for (const auto& [insecte, _] : insectesCandidats) {
+        int scoreMax = calculerScoreMaxParInsecte(insecte, estPlacement);
+        insectesAvecScore.emplace_back(insecte, scoreMax);
+    }
+
+    std::sort(insectesAvecScore.begin(), insectesAvecScore.end(),
+              [](const auto& a, const auto& b){
+                  return a.second > b.second;
+              });
+
+    // On ne garde que les meilleurs insectes
+    std::map<Insecte*, std::vector<Hexagon>> meilleursInsectes;
+    for (int i = 0; i < std::min((int)insectesAvecScore.size(), nombreMeilleursInsectes); ++i) {
+        Insecte* insecte = insectesAvecScore[i].first;
+        meilleursInsectes[insecte] = insectesCandidats[insecte];
+    }
+
+    insectesCandidats = std::move(meilleursInsectes);
+}
+
+
 void JoueurIANiveau2::evaluerPlacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxPlacements) {
     nouveauxCandidats.clear();
 
+    // 1. Pour chaque insecte, évaluer et trier les placements
     for (const auto& [insecte, placements] : candidats) {
-        std::vector<std::pair<Hexagon, int>> placementsAvecScore;
-
-        for (const Hexagon& placement : placements) {
-            int score = evaluerAction(placement, insecte, getPlateau());
-            placementsAvecScore.emplace_back(placement, score);
-        }
-
-        // Trier les dÃ©placements par score dÃ©croissant
-        std::sort(placementsAvecScore.begin(), placementsAvecScore.end(),
-                  [](const auto& a, const auto& b) {
-                      return a.second > b.second;
-                  });
-
-        // Garder les meilleurs dÃ©placements
-        std::vector<Hexagon> meilleursPlacements;
-        for (int i = 0; i < std::min(static_cast<int>(placementsAvecScore.size()), nombreMaxPlacements); ++i) {
-            meilleursPlacements.push_back(placementsAvecScore[i].first);
-        }
-
-        if (!meilleursPlacements.empty()) {
-            nouveauxCandidats[insecte] = std::move(meilleursPlacements);
+        auto mouvementsTries = evaluerEtTrierMouvements(insecte, placements, true);
+        auto meilleurs = extraireMeilleursMouvements(mouvementsTries, nombreMaxPlacements);
+        if (!meilleurs.empty()) {
+            nouveauxCandidats[insecte] = std::move(meilleurs);
         }
     }
 
     intersectionCandidats();
-    nouveauxCandidats.clear();
-}
 
+    // 2. Filtrer les meilleurs insectes
+    filtrerMeilleursInsectes(nouveauxCandidats, 3, true);
+
+    // Vous pouvez décider ici si vous voulez vider nouveauxCandidats ou le laisser
+    // nouveauxCandidats.clear(); // Si nécessaire
+}
 
 
 void JoueurIANiveau2::evaluerDeplacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxDeplacements) {
     nouveauxCandidats.clear();
 
+    // 1. Pour chaque insecte, évaluer et trier les déplacements
     for (const auto& [insecte, deplacements] : candidats) {
-        std::vector<std::pair<Hexagon, int>> deplacementsAvecScore;
-
-        for (const Hexagon& deplacement : deplacements) {
-            int score = evaluerAction(deplacement, insecte, getPlateau());
-            deplacementsAvecScore.emplace_back(deplacement, score);
-        }
-
-        // Trier les dÃ©placements par score dÃ©croissant
-        std::sort(deplacementsAvecScore.begin(), deplacementsAvecScore.end(),
-                  [](const auto& a, const auto& b) {
-                      return a.second > b.second;
-                  });
-
-        // Garder les meilleurs dÃ©placements
-        std::vector<Hexagon> meilleursDeplacements;
-        for (int i = 0; i < std::min(static_cast<int>(deplacementsAvecScore.size()), nombreMaxDeplacements); ++i) {
-            meilleursDeplacements.push_back(deplacementsAvecScore[i].first);
-        }
-
-        if (!meilleursDeplacements.empty()) {
-            nouveauxCandidats[insecte] = std::move(meilleursDeplacements);
+        auto mouvementsTries = evaluerEtTrierMouvements(insecte, deplacements, false);
+        auto meilleurs = extraireMeilleursMouvements(mouvementsTries, nombreMaxDeplacements);
+        if (!meilleurs.empty()) {
+            nouveauxCandidats[insecte] = std::move(meilleurs);
         }
     }
 
     intersectionCandidats();
-    nouveauxCandidats.clear();
+
+    // 2. Filtrer les meilleurs insectes
+    filtrerMeilleursInsectes(nouveauxCandidats, 3, false);
+
+    // nouveauxCandidats.clear(); // Si nécessaire
 }
+
+
+
 
 
 

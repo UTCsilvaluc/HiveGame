@@ -235,6 +235,26 @@ private:
     const std::map<Hexagon, Insecte*>* plateau;         // Pointeur vers le plateau
     unsigned int* tour;                                 // Pointeur vers le numéro du tour
 
+    // Fonctions de service internes
+
+    // Évalue un placement pour un insecte, retourne un score
+    int evaluerPlacementAction(Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateau) const;
+
+    // Évalue un déplacement pour un insecte, retourne un score
+    int evaluerDeplacementAction(Insecte* insecte, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
+
+    // Tri et renvoie un vecteur (Hexagon, int) représentant l'emplacement/le déplacement et son score
+    std::vector<std::pair<Hexagon,int>> evaluerEtTrierMouvements(Insecte* insecte, const std::vector<Hexagon>& options, bool estPlacement) const;
+
+    // Extrait les meilleurs mouvements (placements ou déplacements) à partir d'un vecteur trié
+    std::vector<Hexagon> extraireMeilleursMouvements(const std::vector<std::pair<Hexagon,int>>& mouvementsTries, int nombreMax) const;
+
+    // Calcule le score maximum d'un insecte en fonction des mouvements stockés dans nouveauxCandidats
+    int calculerScoreMaxParInsecte(Insecte* insecte, bool estPlacement) const;
+
+    // Filtre les meilleurs insectes en fonction de leurs scores max
+    void filtrerMeilleursInsectes(std::map<Insecte*, std::vector<Hexagon>>& insectesCandidats, int nombreMeilleursInsectes, bool estPlacement);
+
 public:
     // Constructeur mis à jour pour inclure le plateau et le tour
     JoueurIANiveau2(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef)
@@ -282,9 +302,10 @@ public:
     void attaquerReine();
     void verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins);
     void verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine);
-    int evaluerAction(const Hexagon& emplacement, Insecte* insecte, const std::map<Hexagon, Insecte*>& plateau) const;
+
     void evaluerPlacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxPlacements);
     void evaluerDeplacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxDeplacements);
+
     void remplirCandidatsAvecPlateau();
 
     static size_t tailleDeckInitiale() {
