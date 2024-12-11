@@ -239,21 +239,18 @@ private:
 
     // Évalue un placement pour un insecte, retourne un score
     int evaluerPlacementAction(Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-
     // Évalue un déplacement pour un insecte, retourne un score
     int evaluerDeplacementAction(Insecte* insecte, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-
     // Tri et renvoie un vecteur (Hexagon, int) représentant l'emplacement/le déplacement et son score
     std::vector<std::pair<Hexagon,int>> evaluerEtTrierMouvements(Insecte* insecte, const std::vector<Hexagon>& options, bool estPlacement) const;
-
     // Extrait les meilleurs mouvements (placements ou déplacements) à partir d'un vecteur trié
     std::vector<Hexagon> extraireMeilleursMouvements(const std::vector<std::pair<Hexagon,int>>& mouvementsTries, int nombreMax) const;
-
     // Calcule le score maximum d'un insecte en fonction des mouvements stockés dans nouveauxCandidats
     int calculerScoreMaxParInsecte(Insecte* insecte, bool estPlacement) const;
-
     // Filtre les meilleurs insectes en fonction de leurs scores max
     void filtrerMeilleursInsectes(std::map<Insecte*, std::vector<Hexagon>>& insectesCandidats, int nombreMeilleursInsectes, bool estPlacement);
+    int evaluerAttaqueReineAdverse(Insecte* insecte, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
+    int evaluerProtectionReine(Insecte* insecte, const Hexagon& ancienEmplacement, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
 
 public:
     // Constructeur mis à jour pour inclure le plateau et le tour
@@ -271,7 +268,6 @@ public:
 
     // Getter pour le tour
     unsigned int getTour() const { return *tour; }
-    int getActionPourGameMaster() const { return static_cast<int>(actionChoisie); }
     Hexagon getPositionChoisie() const { return positionChoisie; }
     Insecte* getInsecteChoisi() const { return insecteChoisi; }
     // Getter pour l'attribut candidats
@@ -287,21 +283,13 @@ public:
     void choisirHeuristiquePourPlacer();
 
     void reinitialiserAttributs();
-    void afficherHistoriqueHeuristiques() const;
     void afficherCandidats() const;
     void remplirCandidatsAvecDeck();
     void filtrerPrioriteFourmies();
     int evaluerCohesion(const Hexagon& emplacement) const;
-    int evaluerDeplacementsApresPlacement(const Hexagon& emplacement, Insecte* insecte) const;
-    void filtrerMeilleursPlacementsPourDeplacements(int nombreMaxPlacements);
-
-    void choisirAction();
-
-    void intersectionCandidats();
-    void protegerReine();
-    void attaquerReine();
-    void verifierDeplacementsReine(Insecte* reine, const std::vector<Hexagon>& ennemisVoisins);
-    void verifierDeplacementsAllies(Insecte* reine, const std::vector<Hexagon>& voisinsReine);
+    int evaluerBlocageInsecteImportant(Insecte* insecte, const Hexagon& anciennePos, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
+    double calculerScoreMoyenDeDeplacement(const std::map<Insecte*, std::vector<Hexagon>>& candidats) const;
+    double calculerScoreMoyenDePlacement(const std::map<Insecte*, std::vector<Hexagon>>& candidats) const;
 
     void evaluerPlacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxPlacements);
     void evaluerDeplacements(std::map<Insecte*, std::vector<Hexagon>>& candidats, int nombreMaxDeplacements);
