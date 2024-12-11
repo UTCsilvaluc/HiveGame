@@ -344,38 +344,6 @@ void JoueurIANiveau2::afficherCandidats() const {
     }
 }
 
-void JoueurIANiveau2::filtrerPrioriteFourmies() {
-    // Vérifier s'il y a des fourmies dans les candidats
-    bool aDesFourmies = false;
-    for (const auto& [insecte, placements] : candidats) {
-        if (insecte->getNom() == "Fourmi") {
-            aDesFourmies = true;
-            break;
-        }
-    }
-
-    // Si aucune fourmi, ne rien faire
-    if (!aDesFourmies) {
-        return;
-    }
-
-    // Générer une probabilité pour prioriser les fourmies
-    float chance = randomFloat(0.0f, 1.0f); // Fonction utilitaire pour générer un float entre 0 et 1
-    if (chance <= 0.75f) {
-        // Garder uniquement les fourmies dans les candidats
-        std::map<Insecte*, std::vector<Hexagon>> nouveauxCandidats;
-
-        for (const auto& [insecte, placements] : candidats) {
-            if (insecte->getNom() == "Fourmi") {
-                nouveauxCandidats[insecte] = placements;
-            }
-        }
-
-        candidats = std::move(nouveauxCandidats); // Remplacer les candidats par ceux filtrés
-        nouveauxCandidats.clear();
-    }
-}
-
 int JoueurIANiveau2::evaluerCohesion(const Hexagon& emplacement) const {
     std::vector<Hexagon> voisins = getVoisins(emplacement);
     int score = 0;
@@ -510,27 +478,68 @@ int JoueurIANiveau2::evaluerDeplacementAction(Insecte* insecte, const Hexagon& n
     // On simule le déplacement sur un plateau temporaire
     std::map<Hexagon, Insecte*> plateauSimule = plateau;
 
-    // Retirer l'insecte de sa position actuelle
-    // On suppose que l'insecte est déjà sur le plateau, on le trouve pour le déplacer.
+    // Retrouver la position actuelle de l'insecte
     Hexagon anciennePos = insecte->getCoords();
     plateauSimule.erase(anciennePos);
     plateauSimule[nouvelEmplacement] = insecte; // Déplacer virtuellement l'insecte
 
-    // Critère 1 : Cohésion après déplacement
+    // Critère 1 : Cohésion après déplacement (déjà existant)
     int score = evaluerCohesion(nouvelEmplacement);
 
-    // Critère 2 : Menace sur la reine adverse
+    // Critère 2 : Menace sur la reine adverse (déjà existant)
     Insecte* reineAdverse = getReineAdverse(plateauSimule);
     if (reineAdverse) {
-        // Si le nouvel emplacement est adjacent à la reine adverse
         std::vector<Hexagon> voisinsReineAdverse = getVoisins(reineAdverse->getCoords());
         if (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), nouvelEmplacement) != voisinsReineAdverse.end()) {
-            score += 10; // Bonus si l'on menace directement la reine adverse
+            score += 10; // Bonus si on menace directement la reine adverse
+        }
+    }
+
+    // *** Nouvelle logique de défense de la reine alliée ***
+    // Récupérer la reine alliée avant le déplacement
+    Insecte* reineAlliee = getQueenOnPlateau(plateau);
+    if (reineAlliee) {
+        // Calculer le nombre d'ennemis autour de la reine avant le déplacement
+        std::vector<Hexagon> voisinsReineAvant = getVoisins(reineAlliee->getCoords());
+        std::vector<Hexagon> ennemisAvant = reineAlliee->getVoisinsEnnemis(voisinsReineAvant, plateau);
+        size_t nbEnnemisAvant = ennemisAvant.size();
+
+        // Récupérer la reine sur le plateau simulé (même coordonnée)
+        Insecte* reineAllieeSimulee = getQueenOnPlateau(plateauSimule);
+        if (reineAllieeSimulee) {
+            // Calculer le nombre d'ennemis autour de la reine après le déplacement
+            std::vector<Hexagon> voisinsReineApres = getVoisins(reineAllieeSimulee->getCoords());
+            std::vector<Hexagon> ennemisApres = reineAllieeSimulee->getVoisinsEnnemis(voisinsReineApres, plateauSimule);
+            size_t nbEnnemisApres = ennemisApres.size();
+
+            // Si la reine est menacée (plus de 3 ennemis) et qu'on réduit ce nombre, gros bonus
+            if (nbEnnemisAvant > 3 && nbEnnemisApres < nbEnnemisAvant) {
+                if (insecte == reineAlliee) {
+                    // C'est la reine qui se déplace pour réduire la menace
+                    score += 20; // Bonus important car la reine se met en sécurité
+                } else {
+                    // Un allié se déplace d'une manière qui réduit la pression sur la reine
+                    // Par exemple, un allié quitte le voisinage de la reine, permettant peut-être plus de mobilité.
+                    score += 10; // Bonus un peu moindre mais significatif
+                }
+            }
+
+            // Autre scénario : même si la reine n’a pas plus de 3 ennemis, on peut envisager de donner
+            // un petit bonus si le mouvement améliore sa situation quand même.
+            else if (nbEnnemisApres < nbEnnemisAvant) {
+                // Situation améliorée, mais pas critique
+                if (insecte == reineAlliee) {
+                    score += 10;
+                } else {
+                    score += 5;
+                }
+            }
         }
     }
 
     return score;
 }
+
 
 
 std::vector<std::pair<Hexagon,int>> JoueurIANiveau2::evaluerEtTrierMouvements(Insecte* insecte, const std::vector<Hexagon>& options, bool estPlacement) const {
@@ -614,10 +623,10 @@ void JoueurIANiveau2::evaluerPlacements(std::map<Insecte*, std::vector<Hexagon>>
         }
     }
 
-    intersectionCandidats();
-
     // 2. Filtrer les meilleurs insectes
     filtrerMeilleursInsectes(nouveauxCandidats, 3, true);
+
+    candidats = nouveauxCandidats;
 
     // Vous pouvez décider ici si vous voulez vider nouveauxCandidats ou le laisser
     // nouveauxCandidats.clear(); // Si nécessaire
@@ -636,16 +645,13 @@ void JoueurIANiveau2::evaluerDeplacements(std::map<Insecte*, std::vector<Hexagon
         }
     }
 
-    intersectionCandidats();
-
     // 2. Filtrer les meilleurs insectes
     filtrerMeilleursInsectes(nouveauxCandidats, 3, false);
 
+    candidats = nouveauxCandidats;
+
     // nouveauxCandidats.clear(); // Si nécessaire
 }
-
-
-
 
 
 
@@ -684,31 +690,8 @@ void JoueurIANiveau2::choisirHeuristiquePourPlacer() {
 
 
 
-void JoueurIANiveau2::afficherHistoriqueHeuristiques() const {
-    std::cout << "Historique des heuristiques utilisées : ";
-    for (const auto& heuristique : historiqueHeuristiques) {
-        switch (heuristique) {
-            case PROTEGER_REINE:
-                std::cout << "PROTEGER_REINE ";
-                break;
-            case ATTAQUER_REINE:
-                std::cout << "ATTAQUER_REINE ";
-                break;
-            case COMPACTER_RUCHE:
-                std::cout << "COMPACTER_RUCHE ";
-                break;
-            case AUCUN_HEURISTIQUE:
-                std::cout << "AUCUN_HEURISTIQUE ";
-                break;
-        }
-    }
-    std::cout << std::endl;
-}
-
-
-
 int JoueurIANiveau2::getInputForAction() {
-    candidats.clear(); // Réinitialiser les candidats
+    reinitialiserAttributs(); // Réinitialiser les candidats
 
     // Calculer la phase du jeu
     int tour = getTour();
@@ -737,7 +720,7 @@ int JoueurIANiveau2::getInputForAction() {
     }
 
     // Afficher les informations pour le débogage
-    afficherHistoriqueHeuristiques();
+
     afficherCandidats();
 
     // Retourner l'action choisie si disponible
@@ -774,7 +757,6 @@ int JoueurIANiveau2::getInputForPlacementIndex(std::vector<Hexagon> placementsPo
     if (candidats.empty() || !insecteChoisi) {
         return randomHexagonIndexChoice(placementsPossibles); // Fallback : choisir une position aléatoire
     }
-    afficherCandidats();
     return findIndexInOptions(insecteChoisi, candidats, placementsPossibles);
 }
 
