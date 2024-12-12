@@ -317,12 +317,6 @@ public:
     int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) override;
 };
 
-struct Coup {
-    ActionType action;       // PLACER ou DEPLACER
-    Insecte* insecte;        // L'insecte impliquÃ© dans le coup
-    Hexagon position;        // Position cible
-};
-
 class JoueurIANiveau3 : public JoueurIANiveau2 {
 public:
     JoueurIANiveau3(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef, Joueur* adversaireRef)
@@ -398,7 +392,7 @@ protected:
 
     int minimax(std::map<Hexagon, Insecte*> plateau, int profondeur, bool maximisateur, int alpha, int beta) {
         // Cas de base : Retourner le score de la fonction d'Ã©valuation
-        if (profondeur == 0 || estTerminal(plateau)) {
+        if (profondeur <= 0 || estTerminal(plateau)) {
             return evaluerPlateau(plateau); // Fonction d'Ã©valuation
         }
         std::cout<<"10";
@@ -537,12 +531,19 @@ protected:
         if (estUnPlacement) {
             plateauSimule[nouvellePosition] = insecte;
         } else {
-            Hexagon anciennePosition = insecte->getCoords();
-            plateauSimule.erase(anciennePosition);
-            plateauSimule[nouvellePosition] = insecte;
+            Hexagon anciennePosition;
+            bool trouve = false;
+            for (const auto& [position, insectePlateau] : plateau) {
+                if (insectePlateau == insecte) {
+                    anciennePosition = position;
+                    trouve = true;
+                    break;
+                }
+            }
+            if (!trouve && !estUnPlacement) {
+                throw std::runtime_error("Insecte non trouvé sur le plateau alors que ce n'est pas un placement.");
+            }
         }
-
-        insecte->setCoords(nouvellePosition);
         return plateauSimule;
     }
 
