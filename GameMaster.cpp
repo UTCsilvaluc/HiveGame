@@ -240,10 +240,6 @@ void GameMaster::placerPion(Joueur* current, bool needPlayQueen) {
         }
     }
 
-    /*if (!plateau.plateauEstVide()) {
-        plateau.afficherPlateau(joueur1, joueur2);
-    }*/
-
     Hexagon position;
     bool placementValide = false;
 

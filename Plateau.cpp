@@ -128,14 +128,6 @@ std::vector<Hexagon> Plateau::getVoisinsInsectePlateau(Insecte *insecte) {
                 Hexagon(q-1, r)
         };
     }
-
-    // Affichage des voisins pour v�rification
-    std::cout << "Voisins de l'insecte (" << q << ", " << r << ") :\n";
-    for (const auto& voisin : voisins) {
-        std::cout << voisin << " ";
-    }
-    std::cout << "\n";
-
     return voisins;
 }
 
@@ -154,9 +146,6 @@ bool Plateau::estEntouree(Insecte *insecte) {
 
     for (const Hexagon& voisin : voisins) {
         auto it = plateauMap.find(voisin);
-
-        // Affichage pour debug
-        std::cout << "V�rification de la case : " << voisin << " -> ";
 
         if (it == plateauMap.end()) {
             std::cout << "Case vide (hors du plateau ou non initialis�e).\n";
