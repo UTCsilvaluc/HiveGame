@@ -11,7 +11,7 @@
 	<memory>
 	<iostream>
 
-1733752779 c:\users\jean-\desktop\group\hivegame\insecte.h
+1734036666 c:\users\jean-\desktop\group\hivegame\insecte.h
 	"Hexagon.h"
 	"Action.h"
 	"Plateau.h"
@@ -36,7 +36,7 @@
 	<limits>
 	<iostream>
 
-1733953540 c:\users\jean-\desktop\group\hivegame\joueur.h
+1734037117 c:\users\jean-\desktop\group\hivegame\joueur.h
 	"Insecte.h"
 	<vector>
 	<cstdlib>
@@ -46,7 +46,7 @@
 	<map>
 	<limits>
 
-1734017368 source:c:\users\jean-\desktop\group\hivegame\gamemaster.cpp
+1734036666 source:c:\users\jean-\desktop\group\hivegame\gamemaster.cpp
 	"GameMaster.h"
 	<fstream>
 	<iostream>
@@ -83,17 +83,17 @@
 	"Hexagon.h"
 	<sstream>
 
-1734017014 source:c:\users\jean-\desktop\group\hivegame\insecte.cpp
+1734036666 source:c:\users\jean-\desktop\group\hivegame\insecte.cpp
 	"Insecte.h"
 
-1733953639 source:c:\users\jean-\desktop\group\hivegame\joueur.cpp
+1734036666 source:c:\users\jean-\desktop\group\hivegame\joueur.cpp
 	"Joueur.h"
 	<sstream>
 
 1733666101 source:c:\users\jean-\desktop\group\hivegame\main.cpp
 	"GameMaster.h"
 
-1734017368 source:c:\users\jean-\desktop\group\hivegame\plateau.cpp
+1734036666 source:c:\users\jean-\desktop\group\hivegame\plateau.cpp
 	"Plateau.h"
 
 1733913109 source:c:\users\sillu\hivegame\action.cpp

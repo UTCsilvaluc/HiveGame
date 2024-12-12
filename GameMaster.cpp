@@ -8,9 +8,10 @@ void GameMaster::startGame() {
     //std::cout << "Vous avez s�lectionn� le mode : " << (mode == 1 ? "JvJ" : "JvIA") << "\n";
     if (mode == 1 ) std::cout << "Vous avez s�lectionn� le mode : JvJ" << "\n";
     else{
-        modeIA = getInput("\nMerci de s�lectionner le niveau de l'IA :\n1 - Niveau 1 (IA Aleatoire)\n2 - Niveau 2 (IA Heuristique)\n", 1, 2);
-        std::cout << "Vous avez s�lectionn� le niveau : " << (modeIA == 1 ? "Niveau 1" : "Niveau 2") << "\n";
+        modeIA = getInput("\nMerci de sï¿½lectionner le niveau de l'IA :\n1 - Niveau 1 (IA Aleatoire)\n2 - Niveau 2 (IA Heuristique)\n3 - Niveau 3 (IA Niveau MAX)\n", 1, 3);
+        std::cout << "Vous avez sï¿½lectionnï¿½ le niveau : " << (modeIA == 1 ? "Niveau 1" : "Niveau 2") << "\n";
     }
+
 
     std::string nom;
     std::cout << "\nMerci de saisir le nom du Joueur" << std::endl;
@@ -21,12 +22,15 @@ void GameMaster::startGame() {
     if (mode == 1) {
         std::cout << "\nMerci de saisir le nom du second Joueur" << std::endl;
         std::cin >> nom;
-        joueur2 = new JoueurHumain(nom);  // Cr�er le joueur 2
+        joueur2 = new JoueurHumain(nom);  // Crï¿½er le joueur 2
     } else if (modeIA == 1) {
         joueur2 = new JoueurIA("IA");
-    }else{
+    }else if (modeIA == 2){
         joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour);
+    }else if(modeIA == 3){
+        joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, joueur1);
     }
+
 
     std::cout << "Joueur 1 cr�� : " << joueur1->getName() << std::endl;
     std::cout << "Joueur 2 cr�� : " << joueur2->getName() << std::endl;

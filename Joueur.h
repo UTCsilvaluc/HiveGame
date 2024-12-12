@@ -225,7 +225,7 @@ enum HeuristiqueType { PROTEGER_REINE, ATTAQUER_REINE, COMPACTER_RUCHE, AUCUN_HE
 enum ActionType { DEPLACER = 1, PLACER = 2, AUCUN_ACTION = 0 };
 
 class JoueurIANiveau2 : public JoueurIA {
-private:
+protected:
     ActionType actionChoisie;                           // PLACER, DEPLACER, AUCUN
     Hexagon positionChoisie;                            // Pour mémoriser la position choisie
     Insecte* insecteChoisi;                             // Pour mémoriser l'insecte choisi (peut être dans le deck ou sur le plateau)
@@ -316,6 +316,316 @@ public:
     int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) override;
     int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) override;
 };
+
+struct Coup {
+    ActionType action;       // PLACER ou DEPLACER
+    Insecte* insecte;        // L'insecte impliquÃ© dans le coup
+    Hexagon position;        // Position cible
+};
+
+class JoueurIANiveau3 : public JoueurIANiveau2 {
+public:
+    JoueurIANiveau3(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef, Joueur* adversaireRef)
+        : JoueurIANiveau2(nom, plateauRef, tourRef), adversaire(adversaireRef) {}
+
+
+
+    // Surcharger les mÃ©thodes pures de Joueur
+    int getInputForAction() override {
+        reinitialiserAttributs();
+        std::cout<<"nul";
+        // On utilise minimax pour dÃ©cider du meilleur coup
+        int meilleurScore = -std::numeric_limits<int>::max();
+        std::pair<Insecte*, Hexagon> meilleurCoup{nullptr, Hexagon()};
+        std::cout<<"aba";
+
+        // GÃ©nÃ©ration de tous les coups possibles pour l'IA (maximisateur)
+        auto coupsPossibles = genererCoups(getPlateau(), true);
+
+        std::cout<<"2";
+
+        // Si aucun coup possible, fallback (pas forcÃ©ment utile si estTerminal() gÃ©rÃ©)
+        if (coupsPossibles.empty()) {
+            actionChoisie = AUCUN_ACTION;
+            return static_cast<int>(actionChoisie);
+        }
+
+        // Parcourir tous les coups possibles et Ã©valuer via minimax
+        for (auto& [insecte, positions] : coupsPossibles) {
+            for (auto& position : positions) {
+                auto plateauSimule = simulerCoup(getPlateau(), std::make_pair(insecte, position));
+                std::cout<<"4_";
+                int score = minimax(plateauSimule, 3, false, -std::numeric_limits<int>::max(), std::numeric_limits<int>::max());
+                std::cout<<"5";
+                if (score > meilleurScore) {
+                    meilleurScore = score;
+                    meilleurCoup = {insecte, position};
+                }
+            }
+        }
+        std::cout<<"3";
+
+        // Ajouter le meilleur coup aux candidats
+        candidats[meilleurCoup.first].push_back(meilleurCoup.second);
+
+        // DÃ©terminer l'action en fonction de si l'insecte Ã©tait dÃ©jÃ  placÃ© ou non
+        bool placement = estPlacement(getPlateau(), meilleurCoup.first);
+        actionChoisie = placement ? PLACER : DEPLACER;
+
+        std::cout<<"4";
+
+        return static_cast<int>(actionChoisie);
+    }
+
+    int getInputForDeckIndex() override {
+        return JoueurIANiveau2::getInputForDeckIndex();
+    }
+
+    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles) override {
+        return JoueurIANiveau2::getInputForPlacementIndex(placementsPossibles);
+    }
+
+    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) override {
+        return JoueurIANiveau2::getInputIndexForInsectToMove(insectesDuJoueur);
+    }
+
+    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) override {
+        return JoueurIANiveau2::getInputForMovementIndex(deplacementsPossibles);
+    }
+
+protected:
+    Joueur* adversaire; // Pointeur vers l'adversaire
+
+    int minimax(std::map<Hexagon, Insecte*> plateau, int profondeur, bool maximisateur, int alpha, int beta) {
+        // Cas de base : Retourner le score de la fonction d'Ã©valuation
+        if (profondeur == 0 || estTerminal(plateau)) {
+            return evaluerPlateau(plateau); // Fonction d'Ã©valuation
+        }
+        std::cout<<"10";
+
+        if (maximisateur) { // On utilise dÃ©sormais "maximiseur" -> "maximisateur"
+            // Maximisation : L'IA joue
+            int meilleurScore = -std::numeric_limits<int>::max();
+            auto coupsPossibles = genererCoups(plateau, true); // Coups possibles pour l'IA
+            std::cout<<"11";
+            for (auto& [insecte, positions] : coupsPossibles) {
+                for (auto& position : positions) {
+                    auto plateauSimule = simulerCoup(plateau, std::make_pair(insecte, position)); // Simuler le coup
+                    int score = minimax(plateauSimule, profondeur - 1, false, alpha, beta);
+                    std::cout<<"12";
+                    meilleurScore = std::max(meilleurScore, score);
+                    alpha = std::max(alpha, score);
+                    if (beta <= alpha) {
+                        break; // Coupure bÃªta
+                    }
+                }
+                if (beta <= alpha) {
+                    break; // Coupure bÃªta
+                }
+            }
+            return meilleurScore;
+        } else {
+            // Minimisation : L'adversaire joue
+            int meilleurScore = std::numeric_limits<int>::max();
+            auto coupsPossibles = genererCoups(plateau, false); // Coups possibles pour l'adversaire
+            std::cout<<"13";
+            for (auto& [insecte, positions] : coupsPossibles) {
+                for (auto& position : positions) {
+                    auto plateauSimule = simulerCoup(plateau, std::make_pair(insecte, position)); // Simuler le coup
+                    int score = minimax(plateauSimule, profondeur - 1, true, alpha, beta);
+                    std::cout<<"14";
+                    meilleurScore = std::min(meilleurScore, score);
+                    beta = std::min(beta, score);
+                    if (beta <= alpha) {
+                        break; // Coupure alpha
+                    }
+                }
+                if (beta <= alpha) {
+                    break; // Coupure alpha
+                }
+            }
+            return meilleurScore;
+        }
+    }
+
+    int evaluerPlateau(const std::map<Hexagon, Insecte*>& plateau) {
+        // Sauvegarder l'Ã©tat initial
+        auto sauvegardeCandidats = candidats;
+        auto sauvegardeNouveauxCandidats = nouveauxCandidats;
+        const std::map<Hexagon, Insecte*>* plateauInitial = this->plateau;
+
+        // Ici, au lieu de rediriger this->plateau vers &plateau (qui est un paramÃ¨tre local),
+        // travaillez directement avec "plateau" passÃ© en paramÃ¨tre. Pas besoin de modifier this->plateau.
+        // Si vraiment nÃ©cessaire, faites une copie sÃ©parÃ©e, mais Ã©vitez this->plateau = &plateau;
+        // qui peut crÃ©er des problÃ¨mes de durÃ©e de vie.
+
+        // Ã‰valuer placements
+        reinitialiserAttributs();
+        choisirHeuristiquePourPlacer();
+        double scoreMoyenPlacement = 0.0;
+        if (!candidats.empty()) {
+            scoreMoyenPlacement = calculerScoreMoyenDePlacement(candidats);
+        }
+
+        // Ã‰valuer dÃ©placements
+        reinitialiserAttributs();
+        choisirHeuristiquePourDeplacer();
+        double scoreMoyenDeplacement = 0.0;
+        if (!candidats.empty()) {
+            scoreMoyenDeplacement = calculerScoreMoyenDeDeplacement(candidats);
+        }
+
+        // Restauration de l'Ã©tat initial
+        this->plateau = plateauInitial;
+        candidats = sauvegardeCandidats;
+        nouveauxCandidats = sauvegardeNouveauxCandidats;
+
+        reinitialiserAttributs();
+
+        return static_cast<int>((scoreMoyenPlacement + scoreMoyenDeplacement) / 2.0);
+    }
+
+    // Ajouter le prÃ©fixe JoueurIANiveau3:: aux mÃ©thodes membres
+    bool estTerminal(const std::map<Hexagon, Insecte*>& plateau){
+        Insecte* reineAlliee = getQueenOnPlateau(plateau);
+        Insecte* reineAdverse = getReineAdverse(plateau);
+
+        if (reineAlliee && estEncerclee(reineAlliee, plateau)) {
+            return true; // DÃ©faite
+        }
+
+        if (reineAdverse && estEncerclee(reineAdverse, plateau)) {
+            return true; // Victoire
+        }
+
+        // VÃ©rifier si plus aucun coup n'est possible (Ã©galitÃ©)
+        std::map<Insecte*, std::vector<Hexagon>> candidatsPlacement;
+        std::map<Insecte*, std::vector<Hexagon>> candidatsDeplacement;
+
+        remplirCandidatsAvecDeck();
+        candidatsPlacement = candidats;
+
+        remplirCandidatsAvecPlateau();
+        candidatsDeplacement = candidats;
+
+        if (candidatsPlacement.empty() && candidatsDeplacement.empty()) {
+            return true; // Ã‰galitÃ©
+        }
+
+        return false;
+    }
+
+    bool estEncerclee(Insecte* reine, const std::map<Hexagon, Insecte*>& plateau) const {
+        std::vector<Hexagon> voisins = reine->getCoords().getVoisins();
+        for (const Hexagon& voisin : voisins) {
+            auto it = plateau.find(voisin);
+            if (it == plateau.end() || it->second == nullptr) {
+                return false; // Au moins un voisin est libre
+            }
+        }
+        return true;
+    }
+
+    std::map<Hexagon, Insecte*> simulerCoup(const std::map<Hexagon, Insecte*>& plateau,
+                                            const std::pair<Insecte*, Hexagon>& coup) {
+        std::map<Hexagon, Insecte*> plateauSimule = plateau;
+
+        Insecte* insecte = coup.first;
+        const Hexagon& nouvellePosition = coup.second;
+        bool estUnPlacement = estPlacement(plateauSimule, insecte);
+
+        if (estUnPlacement) {
+            plateauSimule[nouvellePosition] = insecte;
+        } else {
+            Hexagon anciennePosition = insecte->getCoords();
+            plateauSimule.erase(anciennePosition);
+            plateauSimule[nouvellePosition] = insecte;
+        }
+
+        insecte->setCoords(nouvellePosition);
+        return plateauSimule;
+    }
+
+
+std::map<Insecte*, std::vector<Hexagon>> genererCoups(const std::map<Hexagon, Insecte*>& plateau, bool estMaximisant) {
+    // RÃ©initialiser les attributs pour Ã©viter toute interfÃ©rence
+    reinitialiserAttributs();
+
+    std::map<Insecte*, std::vector<Hexagon>> coupsPossibles;
+
+    if (estMaximisant) {
+        // IA Maximisant
+        // GÃ©nÃ©rer les placements
+        choisirHeuristiquePourPlacer();
+        std::map<Insecte*, std::vector<Hexagon>> placements = getCandidats();
+
+        // RÃ©initialiser les attributs pour gÃ©nÃ©rer les dÃ©placements
+        reinitialiserAttributs();
+
+        // GÃ©nÃ©rer les dÃ©placements
+        choisirHeuristiquePourDeplacer();
+        std::map<Insecte*, std::vector<Hexagon>> deplacements = getCandidats();
+
+        // Fusionner placements et dÃ©placements
+        coupsPossibles.insert(placements.begin(), placements.end());
+        coupsPossibles.insert(deplacements.begin(), deplacements.end());
+    } else {
+        // Adversaire Minimisant
+        coupsPossibles = genererCoupsAdversaire(plateau);
+    }
+
+    return coupsPossibles;
+}
+
+
+std::map<Insecte*, std::vector<Hexagon>> genererCoupsAdversaire(const std::map<Hexagon, Insecte*>& plateau) {
+    // Carte pour stocker les coups possibles de l'adversaire
+    std::map<Insecte*, std::vector<Hexagon>> coupsAdversaire;
+
+    // Ã‰tape 1 : Identifier tous les insectes adverses sur le plateau
+    std::vector<Insecte*> insectesAdversaires;
+    for (const auto& [position, insecte] : plateau) {
+        if (insecte->getOwner() != this) { // Si l'insecte appartient Ã  l'adversaire
+            insectesAdversaires.push_back(insecte);
+        }
+    }
+
+    // Ã‰tape 2 : GÃ©nÃ©rer tous les dÃ©placements possibles pour chaque insecte adverse
+    for (Insecte* insecte : insectesAdversaires) {
+        std::vector<Hexagon> deplacementsPossibles = insecte->deplacementsPossibles(plateau);
+        if (!deplacementsPossibles.empty()) {
+            coupsAdversaire[insecte] = deplacementsPossibles;
+        }
+    }
+
+    // Ã‰tape 3 : Ajouter les placements possibles (depuis le deck adverse)
+    std::vector<Insecte*> deckAdversaire = adversaire->getDeck();
+    for (Insecte* insecte : deckAdversaire) {
+        std::vector<Hexagon> placementsPossibles = insecte->getPlacementsPossibles(plateau);
+        if (!placementsPossibles.empty()) {
+            coupsAdversaire[insecte] = placementsPossibles;
+        }
+    }
+
+    return coupsAdversaire;
+}
+
+
+
+bool estPlacement(const std::map<Hexagon, Insecte*>& plateau, Insecte* insecte) {
+    // VÃ©rifie si l'insecte n'est pas encore sur le plateau
+    for (const auto& [position, insectePlateau] : plateau) {
+        if (insectePlateau == insecte) {
+            return false; // L'insecte est dÃ©jÃ  placÃ©
+        }
+    }
+    return true; // L'insecte n'est pas encore placÃ©
+}
+
+
+
+};
+
 
 
 
