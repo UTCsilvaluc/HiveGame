@@ -269,14 +269,23 @@ protected:
     std::map<Insecte*, std::vector<Hexagon>> candidats; // Map pour stocker les insectes et leurs déplacements possibles
     const std::map<Hexagon, Insecte*>* plateau;         // Pointeur vers le plateau
     unsigned int* tour;                                 // Pointeur vers le numéro du tour
+    std::unordered_map<std::string, double> poidsHeuristiques;
 
 public:
-    JoueurIANiveau2(const std::string& nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef)
-        : JoueurIA(nom), plateau(plateauRef), tour(tourRef) {}
+    JoueurIANiveau2(const std::string& nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef, const std::unordered_map<std::string, double>& initialPoids = {})
+        : JoueurIA(nom), plateau(plateauRef), tour(tourRef), poidsHeuristiques(initialPoids) {}
 
     // Getter pour nouveauxCandidats
     const std::map<Insecte*, std::vector<Hexagon>>& getNouveauxCandidats() const {
         return nouveauxCandidats;
+    }
+
+    double getPoids(const std::string& heuristique) const {
+        return poidsHeuristiques.at(heuristique); // Directement utiliser at()
+    }
+
+    void setPoids(const std::string& heuristique, double poids) {
+        poidsHeuristiques[heuristique] = poids; // Modifier ou ajouter la clé directement
     }
 
     // Getter pour candidats
@@ -315,48 +324,48 @@ public:
     void afficherCandidats() const;
 
     // Évalue la cohésion d'un emplacement avec les insectes alliés adjacents
-    int evaluerCohesion(const Joueur* joueur, const Hexagon& emplacement,
+    double evaluerCohesion(const Joueur* joueur, const Hexagon& emplacement,
                         const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue un placement spécifique pour un insecte
-    int evaluerPlacementAction(const Joueur* joueur, Insecte* insecte,
+    double evaluerPlacementAction(const Joueur* joueur, Insecte* insecte,
                                const Hexagon& emplacement,
                                const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue l'impact d'une attaque sur la reine adverse
-    int evaluerAttaqueReineAdverse(const Joueur* joueur, Insecte* insecte,
+    double evaluerAttaqueReineAdverse(const Joueur* joueur, Insecte* insecte,
                                    const Hexagon& nouvelEmplacement,
                                    const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue la protection apportée à la reine alliée
-    int evaluerProtectionReine(const Joueur* joueur, Insecte* insecte,
+    double evaluerProtectionReine(const Joueur* joueur, Insecte* insecte,
                                const Hexagon& ancienneEmplacement,
                                const Hexagon& nouvelEmplacement,
                                const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue l'impact d'un blocage sur un insecte adverse important
-    int evaluerBlocageInsecteImportant(const Joueur* joueur, Insecte* insecte,
+    double evaluerBlocageInsecteImportant(const Joueur* joueur, Insecte* insecte,
                                        const Hexagon& anciennePos,
                                        const Hexagon& nouvelEmplacement,
                                        const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue un déplacement spécifique pour un insecte
-    int evaluerDeplacementAction(const Joueur* joueur, Insecte* insecte,
+    double evaluerDeplacementAction(const Joueur* joueur, Insecte* insecte,
                                  const Hexagon& nouvelEmplacement,
                                  const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue et trie les mouvements possibles pour un insecte
-    std::vector<std::pair<Hexagon, int>> evaluerEtTrierMouvements(const Joueur* joueur, Insecte* insecte,
+    std::vector<std::pair<Hexagon, double>> evaluerEtTrierMouvements(const Joueur* joueur, Insecte* insecte,
                                                                   const std::vector<Hexagon>& options,
                                                                   bool estPlacement,
                                                                   const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Extrait les meilleurs mouvements parmi les mouvements triés
-    std::vector<Hexagon> extraireMeilleursMouvements(const std::vector<std::pair<Hexagon, int>>& mouvementsTries,
+    std::vector<Hexagon> extraireMeilleursMouvements(const std::vector<std::pair<Hexagon, double>>& mouvementsTries,
                                                      int nombreMax) const;
 
     // Calcule le score maximum pour un insecte spécifique
-    int calculerScoreMaxParInsecte(const Joueur* joueur, Insecte* insecte,
+    double calculerScoreMaxParInsecte(const Joueur* joueur, Insecte* insecte,
                                    bool estPlacement,
                                    const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
@@ -391,9 +400,7 @@ public:
 
     std::size_t hashPlateau(const std::map<Hexagon, Insecte*>& plateau) const;
 
-    // Dans JoueurIANiveau2.h ou .cpp
-
-    int heuristiquePreliminaire(const Joueur* joueur, Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateauSimule) const;
+    double heuristiquePreliminaire(const Joueur* joueur, Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
 
 
@@ -510,8 +517,8 @@ static std::unordered_map<GameState, int, GameStateHash, GameStateEqual> transpo
 
 class JoueurIANiveau3 : public JoueurIANiveau2 {
 public:
-    JoueurIANiveau3(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef, Joueur* adversaireRef)
-            : JoueurIANiveau2(nom, plateauRef, tourRef), adversaire(adversaireRef) {}
+    JoueurIANiveau3(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef, const std::unordered_map<std::string, double>& initialPoids = {}, Joueur* adversaireRef = nullptr)
+            : JoueurIANiveau2(nom, plateauRef, tourRef, initialPoids), adversaire(adversaireRef) {}
 
     Joueur* adversaire; // Pointeur vers l'adversaire
     // Transposition table globale ou membre de la classe JoueurIANiveau3

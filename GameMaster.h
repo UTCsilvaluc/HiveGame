@@ -29,6 +29,7 @@ private:
     void displaySaveGame();
     void undoLastTwoActions();
 public:
+    void startGameForIA();
     bool hasPlayQueen(Joueur *currentPlayer);
     GameMaster() : joueur1(nullptr), joueur2(nullptr) , mode(0) {}
     Insecte* selectionnerInsecte(Joueur* current);

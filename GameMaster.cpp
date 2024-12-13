@@ -1,6 +1,21 @@
 #include "GameMaster.h"
 void GameMaster::startGame() {
     //displaySaveGame();
+    std::unordered_map<std::string, double> poidsIA = {
+            {"evaluerCohesion", 1},
+            {"distanceMin", 10.0},
+            {"evaluerAttaqueReineAdverse", 2.0},
+            {"potentielFuturPlacement", 0.75},
+            {"placement", 0.75},
+            {"MenacerReineAdverse", 10.0},
+            {"plusMenacerReineAdverse", -5.0},
+            {"multiDeRisqueSurReine", 1.5},
+            {"bougerReine", 10.0},
+            {"bougerInsectePourProtegerReine", 5.0},
+            {"laisserReineSecurite", 5.0},
+            {"bonusBlocage", 7.0}
+    };
+
     std::ifstream file("game_save82.json");
     std::cout << "\nD�marrage du jeu HiveGame en cours...\n" << std::endl;
     choixExtensions();
@@ -26,14 +41,50 @@ void GameMaster::startGame() {
     } else if (modeIA == 1) {
         joueur2 = new JoueurIA("IA");
     }else if (modeIA == 2){
-        joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour);
+        joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
     }else if(modeIA == 3){
-        joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, joueur1);
+        joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
     }
 
 
     std::cout << "Joueur 1 cr�� : " << joueur1->getName() << std::endl;
     std::cout << "Joueur 2 cr�� : " << joueur2->getName() << std::endl;
+    jouer();
+}
+
+void GameMaster::startGameForIA() {
+    std::unordered_map<std::string, double> poidsIA1 = {
+            {"evaluerCohesion", 1},
+            {"distanceMin", 10.0},
+            {"evaluerAttaqueReineAdverse", 2.0},
+            {"potentielFuturPlacement", 0.75},
+            {"placement", 0.75},
+            {"MenacerReineAdverse", 10.0},
+            {"plusMenacerReineAdverse", -5.0},
+            {"multiDeRisqueSurReine", 1.5},
+            {"bougerReine", 10.0},
+            {"bougerInsectePourProtegerReine", 5.0},
+            {"laisserReineSecurite", 5.0},
+            {"bonusBlocage", 7.0}
+    };
+
+    std::unordered_map<std::string, double> poidsIA2 = {
+            {"evaluerCohesion", 1},
+            {"distanceMin", 10.0},
+            {"evaluerAttaqueReineAdverse", 2.0},
+            {"potentielFuturPlacement", 0.75},
+            {"placement", 0.75},
+            {"MenacerReineAdverse", 10.0},
+            {"plusMenacerReineAdverse", -5.0},
+            {"multiDeRisqueSurReine", 1.5},
+            {"bougerReine", 10.0},
+            {"bougerInsectePourProtegerReine", 5.0},
+            {"laisserReineSecurite", 5.0},
+            {"bonusBlocage", 7.0}
+    };
+
+    joueur1 = new JoueurIANiveau2("IA1", &plateau.getPlateauMap(), &tour, poidsIA1);  // Cr�er le joueur 1
+    joueur2 = new JoueurIANiveau2("IA2", &plateau.getPlateauMap(), &tour, poidsIA2);
     jouer();
 }
 
