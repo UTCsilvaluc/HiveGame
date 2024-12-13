@@ -219,14 +219,10 @@ public:
 
 
 
-
-
-enum HeuristiqueType { PROTEGER_REINE, ATTAQUER_REINE, COMPACTER_RUCHE, AUCUN_HEURISTIQUE }; // Ajout d'une énumération pour les types d'heuristiques
-
-enum ActionType { DEPLACER = 1, PLACER = 2, AUCUN_ACTION = 0 };
-
 class JoueurIANiveau2 : public JoueurIA {
 protected:
+    enum ActionType { DEPLACER = 1, PLACER = 2, AUCUN_ACTION = 0 };
+
     ActionType actionChoisie;                           // PLACER, DEPLACER, AUCUN
     Hexagon positionChoisie;                            // Pour mémoriser la position choisie
     Insecte* insecteChoisi;                             // Pour mémoriser l'insecte choisi (peut être dans le deck ou sur le plateau)
@@ -259,46 +255,99 @@ public:
         return *tour;
     }
 
-    // Remplit les candidats avec le deck du joueur
-    void remplirCandidatsAvecDeck(const Joueur* joueur);
-    void remplirCandidatsAvecDeck(const Joueur* joueur, const std::vector<Insecte*>& deckCopie);
-    // Trouve l'index d'une option parmi les candidats
-    int findIndexInOptions(const Joueur* joueur, Insecte* insecteChoisi, const std::map<Insecte*, std::vector<Hexagon>>& candidats, const std::vector<Hexagon>& options);
-    // Réinitialise les attributs internes
+    // Remplit les candidats avec les insectes disponibles dans le deck
+    void remplirCandidatsAvecDeck(const Joueur* joueur,
+                                  const std::vector<Insecte*>& deck,
+                                  const std::map<Hexagon, Insecte*>& plateauSimule);
+
+    // Remplit les candidats avec les insectes déjà placés sur le plateau
+    void remplirCandidatsAvecPlateau(const Joueur* joueur,
+                                     const std::map<Hexagon, Insecte*>& plateauSimule);
+
+    // Trouve l'index d'un choix dans les options disponibles
+    int findIndexInOptions(const Joueur* joueur, Insecte* insecteChoisi,
+                           const std::map<Insecte*, std::vector<Hexagon>>& candidats,
+                           const std::vector<Hexagon>& options);
+
+    // Réinitialise les attributs internes de la classe
     void reinitialiserAttributs();
-    // Affiche les candidats actuels
+
+    // Affiche les candidats actuels (debug)
     void afficherCandidats() const;
-    // Évalue la cohésion de la ruche avec un emplacement donné
-    int evaluerCohesion(const Joueur* joueur, const Hexagon& emplacement) const;
-    // Évalue un placement pour un insecte donné
-    int evaluerPlacementAction(const Joueur* joueur, Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-    // Évalue une attaque sur la reine adverse
-    int evaluerAttaqueReineAdverse(const Joueur* joueur, Insecte* insecte, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-    // Évalue la protection de la reine alliée
-    int evaluerProtectionReine(const Joueur* joueur, Insecte* insecte, const Hexagon& ancienneEmplacement, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-    // Évalue le blocage d'insectes importants
-    int evaluerBlocageInsecteImportant(const Joueur* joueur, Insecte* insecte, const Hexagon& anciennePos, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-    // Évalue une action de déplacement pour un insecte donné
-    int evaluerDeplacementAction(const Joueur* joueur, Insecte* insecte, const Hexagon& nouvelEmplacement, const std::map<Hexagon, Insecte*>& plateau) const;
-    // Trie et évalue les mouvements d'un insecte
-    std::vector<std::pair<Hexagon, int>> evaluerEtTrierMouvements(const Joueur* joueur, Insecte* insecte, const std::vector<Hexagon>& options, bool estPlacement) const;
-    // Extrait les meilleurs mouvements
-    std::vector<Hexagon> extraireMeilleursMouvements(const std::vector<std::pair<Hexagon, int>>& mouvementsTries, int nombreMax) const;
-    // Calcule le score maximum d'un insecte pour des placements ou déplacements
-    int calculerScoreMaxParInsecte(const Joueur* joueur, Insecte* insecte, bool estPlacement) const;
+
+    // Évalue la cohésion d'un emplacement avec les insectes alliés adjacents
+    int evaluerCohesion(const Joueur* joueur, const Hexagon& emplacement,
+                        const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Évalue un placement spécifique pour un insecte
+    int evaluerPlacementAction(const Joueur* joueur, Insecte* insecte,
+                               const Hexagon& emplacement,
+                               const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Évalue l'impact d'une attaque sur la reine adverse
+    int evaluerAttaqueReineAdverse(const Joueur* joueur, Insecte* insecte,
+                                   const Hexagon& nouvelEmplacement,
+                                   const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Évalue la protection apportée à la reine alliée
+    int evaluerProtectionReine(const Joueur* joueur, Insecte* insecte,
+                               const Hexagon& ancienneEmplacement,
+                               const Hexagon& nouvelEmplacement,
+                               const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Évalue l'impact d'un blocage sur un insecte adverse important
+    int evaluerBlocageInsecteImportant(const Joueur* joueur, Insecte* insecte,
+                                       const Hexagon& anciennePos,
+                                       const Hexagon& nouvelEmplacement,
+                                       const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Évalue un déplacement spécifique pour un insecte
+    int evaluerDeplacementAction(const Joueur* joueur, Insecte* insecte,
+                                 const Hexagon& nouvelEmplacement,
+                                 const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Évalue et trie les mouvements possibles pour un insecte
+    std::vector<std::pair<Hexagon, int>> evaluerEtTrierMouvements(const Joueur* joueur, Insecte* insecte,
+                                                                  const std::vector<Hexagon>& options,
+                                                                  bool estPlacement,
+                                                                  const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Extrait les meilleurs mouvements parmi les mouvements triés
+    std::vector<Hexagon> extraireMeilleursMouvements(const std::vector<std::pair<Hexagon, int>>& mouvementsTries,
+                                                     int nombreMax) const;
+
+    // Calcule le score maximum pour un insecte spécifique
+    int calculerScoreMaxParInsecte(const Joueur* joueur, Insecte* insecte,
+                                   bool estPlacement,
+                                   const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
     // Filtre les meilleurs insectes en fonction de leur score
-    void filtrerMeilleursInsectes(const Joueur* joueur, std::map<Insecte*, std::vector<Hexagon>>& insectesCandidats, int nombreMeilleursInsectes, bool estPlacement);
-    // Remplit les candidats avec les insectes sur le plateau appartenant au joueur
-    void remplirCandidatsAvecPlateau(const Joueur* joueur);
-    // Choisit l'heuristique pour déplacer
-    void choisirHeuristiquePourDeplacer(const Joueur* joueur);
-    // Choisit l'heuristique pour placer
-    void choisirHeuristiquePourPlacer(const Joueur* joueur);
-    void choisirHeuristiquePourPlacer(const Joueur* joueur, std::vector<Insecte*> deckCopie);
-    // Calcule le score moyen pour des placements
-    double calculerScoreMoyenDePlacement(const Joueur* joueur, const std::map<Insecte*, std::vector<Hexagon>>& candidats) const;
-    // Calcule le score moyen pour des déplacements
-    double calculerScoreMoyenDeDeplacement(const Joueur* joueur, const std::map<Insecte*, std::vector<Hexagon>>& candidats) const;
+    void filtrerMeilleursInsectes(const Joueur* joueur,
+                                  std::map<Insecte*, std::vector<Hexagon>>& insectesCandidats,
+                                  int nombreMeilleursInsectes,
+                                  bool estPlacement,
+                                  const std::map<Hexagon, Insecte*>& plateauSimule);
+
+    // Choisit les heuristiques pour les déplacements
+    void choisirHeuristiquePourDeplacer(const Joueur* joueur,
+                                        const std::map<Hexagon, Insecte*>& plateauSimule);
+
+    // Choisit les heuristiques pour les placements
+    void choisirHeuristiquePourPlacer(const Joueur* joueur,
+                                                   const std::vector<Insecte*>& deck,
+                                                   const std::map<Hexagon, Insecte*>& plateauSimule);
+
+
+    // Calcule le score moyen pour les placements
+    double calculerScoreMoyenDePlacement(const Joueur* joueur,
+                                         const std::map<Insecte*, std::vector<Hexagon>>& candidats,
+                                         const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    // Calcule le score moyen pour les déplacements
+    double calculerScoreMoyenDeDeplacement(const Joueur* joueur,
+                                           const std::map<Insecte*, std::vector<Hexagon>>& candidats,
+                                           const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
 
     // Implémentations des fonctions virtuelles
     int getInputForAction() override;
@@ -369,13 +418,15 @@ public:
                 }
             }
         }
-
+        reinitialiserAttributs();
         // Ajouter le meilleur coup aux candidats
         candidats[meilleurCoup.first].push_back(meilleurCoup.second);
 
         // Déterminer l'action en fonction de si l'insecte était déjà placé ou non
         bool placement = estPlacement(getPlateau(), meilleurCoup.first);
         actionChoisie = placement ? PLACER : DEPLACER;
+
+        mettreAJourCoordonneesInsectes(getPlateau());
 
         return static_cast<int>(actionChoisie);
     }
@@ -411,23 +462,27 @@ private:
 
     std::vector<Insecte*> copierDeck(const Joueur* joueur);
 
-    std::map<Insecte*, std::vector<Hexagon>> genererCoups(
-    const std::map<Hexagon, Insecte*>& plateau, bool estMaximisant,
-    const std::vector<Insecte*>& deckMaximisateur, const std::vector<Insecte*>& deckMinimisateur);
+    std::map<Insecte*, std::vector<Hexagon>> genererCoups(const std::map<Hexagon, Insecte*>& plateau, bool estMaximisant,
+                                                            const std::vector<Insecte*>& deckMaximisateur,
+                                                            const std::vector<Insecte*>& deckMinimisateur);
 
-    std::map<Insecte*, std::vector<Hexagon>> genererCoupsAdversaire(
-    const std::map<Hexagon, Insecte*>& plateau,
-    const std::vector<Insecte*>& deckMaximisateur, const std::vector<Insecte*>& deckMinimisateur);
+    std::map<Insecte*, std::vector<Hexagon>> genererCoupsAdversaire(const std::map<Hexagon, Insecte*>& plateau,
+                                                                    const std::vector<Insecte*>& deckMaximisateur,
+                                                                    const std::vector<Insecte*>& deckMinimisateur);
+
 
     std::map<Hexagon, Insecte*> simulerCoup(const std::map<Hexagon, Insecte*>& plateau,
-                                        const std::pair<Insecte*, Hexagon>& coup,
-                                        std::vector<Insecte*>& deckMaximisateur,
-                                        std::vector<Insecte*>& deckMinimisateur,
-                                        bool estMaximisant);
+                                            const std::pair<Insecte*, Hexagon>& coup,
+                                            std::vector<Insecte*>& deckMaximisateur,
+                                            std::vector<Insecte*>& deckMinimisateur,
+                                            bool estMaximisant);
+
 
     bool estEncerclee(Insecte* reine, const std::map<Hexagon, Insecte*>& plateau) const;
 
     bool estPlacement(const std::map<Hexagon, Insecte*>& plateau, Insecte* insecte);
+
+    void mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau);
 };
 
 

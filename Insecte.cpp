@@ -201,6 +201,9 @@ std::vector<Hexagon> Fourmi::deplacementsPossibles(std::map<Hexagon, Insecte*> p
 }
 
 std::vector<Hexagon> deplacementsPossiblesScarabee(Hexagon coords, std::map<Hexagon, Insecte*> p){
+    if (p[coords] == nullptr){
+        return {};
+    }
     if(p[coords]->getDessous()==nullptr){
         std::vector<Hexagon> deplacements;
         std::set<Hexagon> chemin;
@@ -436,6 +439,14 @@ std::vector<Hexagon> Termite::deplacementsPossibles(std::map<Hexagon, Insecte*> 
 Action* Termite::actionDeplacer(Hexagon targetCoord) {
     // La Termite exécute une action spécifique : MangerPionAction
     return new MangerPionAction(this, this->getCoords(), targetCoord);
+}
+Hexagon getInsectPosition(const std::map<Hexagon, Insecte*>& plateau, Insecte* insecte) {
+    for (const auto& [pos, insect] : plateau) {
+        if (insect == insecte) {
+            return pos;
+        }
+    }
+    throw std::runtime_error("getInsectPosition: Insecte introuvable sur le plateau !");
 }
 
 
