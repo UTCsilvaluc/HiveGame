@@ -261,6 +261,7 @@ int JoueurIANiveau2::evaluerPlacementAction(const Joueur* joueur, Insecte* insec
     // Simuler le placement de l'insecte sur le plateau simulé
     std::map<Hexagon, Insecte*> plateauCopie = plateauSimule;
     plateauCopie[emplacement] = insecte;
+    insecte->setCoords(emplacement);
 
     // Évaluer la cohésion avec le plateau simulé
     int score = evaluerCohesion(joueur, emplacement, plateauCopie);
@@ -281,6 +282,8 @@ int JoueurIANiveau2::evaluerPlacementAction(const Joueur* joueur, Insecte* insec
         score += static_cast<int>(0.75f * potentielFutur);
     }
 
+    mettreAJourCoordonneesInsectes(plateauSimule);
+
     // Retourner le score final pondéré
     return static_cast<int>(0.75f * score);
 }
@@ -291,34 +294,30 @@ int JoueurIANiveau2::evaluerAttaqueReineAdverse(const Joueur* joueur, Insecte* i
                                                 const std::map<Hexagon, Insecte*>& plateauSimule) const {
     int score = 0;
 
-    // Obtenir la reine adverse à partir du plateau simulé
+    // Obtenir la reine adverse
     Insecte* reineAdverse = joueur->getReineAdverse(plateauSimule);
-
     if (reineAdverse) {
-        // Obtenir la position de la reine adverse à partir du plateau simulé
-        Hexagon positionReineAdverse = getInsectPosition(plateauSimule, reineAdverse);
-
-        // Obtenir les voisins de la reine adverse
-        std::vector<Hexagon> voisinsReineAdverse = getVoisins(positionReineAdverse);
-
-        // Obtenir la position actuelle de l'insecte sur le plateau simulé
-        Hexagon positionActuelle = getInsectPosition(plateauSimule, insecte);
+        // Obtenir la position actuelle et la position après le déplacement
+        Hexagon positionReineAdverse = reineAdverse->getCoords();
+        Hexagon positionActuelle = insecte->getCoords();
 
         // Vérifier les menaces avant et après le déplacement
+        std::vector<Hexagon> voisinsReineAdverse = getVoisins(positionReineAdverse);
         bool dejaMenacant = (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), positionActuelle) != voisinsReineAdverse.end());
         bool menacantApres = (std::find(voisinsReineAdverse.begin(), voisinsReineAdverse.end(), nouvelEmplacement) != voisinsReineAdverse.end());
 
-        // Ajuster le score en fonction des menaces
+        // Ajuster le score
         if (menacantApres && !dejaMenacant) {
             score += 10; // Bonus pour une nouvelle menace
         }
         if (dejaMenacant && !menacantApres) {
-            score -= 5; // Malus si l'insecte cesse de menacer la reine
+            score -= 5; // Malus si l'insecte cesse de menacer
         }
     }
 
     return score;
 }
+
 
 
 int JoueurIANiveau2::evaluerProtectionReine(const Joueur* joueur, Insecte* insecte,
@@ -326,57 +325,39 @@ int JoueurIANiveau2::evaluerProtectionReine(const Joueur* joueur, Insecte* insec
                                             const std::map<Hexagon, Insecte*>& plateauSimule) const {
     int score = 0;
 
-    // Obtenir la reine alliée à partir du plateau simulé
+    // Obtenir la reine alliée
     Insecte* reineAlliee = joueur->getQueenOnPlateau(plateauSimule);
     if (!reineAlliee) return score;
 
-    // Récupérer la position de la reine alliée sur le plateau simulé
-    Hexagon positionReineAlliee = getInsectPosition(plateauSimule, reineAlliee);
+    // Positions avant et après simulation
+    Hexagon positionReineAlliee = reineAlliee->getCoords();
 
-    // Obtenir les voisins de la reine alliée avant la simulation
+    // Obtenir les voisins avant simulation
     std::vector<Hexagon> voisinsReineAvant = getVoisins(positionReineAlliee);
     std::vector<Hexagon> ennemisAvant = reineAlliee->getVoisinsEnnemis(voisinsReineAvant, plateauSimule);
     size_t nbEnnemisAvant = ennemisAvant.size();
 
-    // Simuler le déplacement de l'insecte
+    // Simuler le déplacement
     std::map<Hexagon, Insecte*> plateauModifie = plateauSimule;
     plateauModifie.erase(ancienneEmplacement);
     plateauModifie[nouvelEmplacement] = insecte;
 
-    // Obtenir la reine alliée simulée sur le plateau modifié
-    Insecte* reineAllieeSimulee = joueur->getQueenOnPlateau(plateauModifie);
-    if (!reineAllieeSimulee) return score;
-
-    // Récupérer les voisins de la reine alliée après la simulation
-    Hexagon positionReineAllieeApres = getInsectPosition(plateauModifie, reineAllieeSimulee);
-    std::vector<Hexagon> voisinsReineApres = getVoisins(positionReineAllieeApres);
-    std::vector<Hexagon> ennemisApres = reineAllieeSimulee->getVoisinsEnnemis(voisinsReineApres, plateauModifie);
+    // Vérifier les ennemis après simulation
+    std::vector<Hexagon> voisinsReineApres = getVoisins(positionReineAlliee);
+    std::vector<Hexagon> ennemisApres = reineAlliee->getVoisinsEnnemis(voisinsReineApres, plateauModifie);
     size_t nbEnnemisApres = ennemisApres.size();
 
-    // Calculer la différence entre les ennemis avant et après
-    int difference = (int)nbEnnemisAvant - (int)nbEnnemisApres;
-
-    // Ajuster le score en fonction de la différence
+    // Calculer la différence
+    int difference = static_cast<int>(nbEnnemisAvant) - static_cast<int>(nbEnnemisApres);
     if (difference > 0) {
-        float multiplicateur = 1.0f;
-        if (nbEnnemisAvant > 4) {
-            multiplicateur = 1.5f;
-        }
-
-        int baseBonus = 0;
-        if (insecte == reineAlliee) {
-            baseBonus = 10 * difference;
-        } else {
-            baseBonus = 5 * difference;
-        }
-
-        score += (int)(baseBonus * multiplicateur);
+        score += (difference * 10); // Bonus pour réduction des menaces
     } else if (difference < 0) {
-        score -= 5 * (-difference);
+        score -= (-difference * 5); // Malus pour augmentation des menaces
     }
 
     return score;
 }
+
 
 
 int JoueurIANiveau2::evaluerBlocageInsecteImportant(const Joueur* joueur, Insecte* insecte,
@@ -387,37 +368,29 @@ int JoueurIANiveau2::evaluerBlocageInsecteImportant(const Joueur* joueur, Insect
     // Obtenir les voisins du nouvel emplacement
     std::vector<Hexagon> voisins = getVoisins(nouvelEmplacement);
 
-    // Identifier les insectes importants adverses à proximité
+    // Identifier les insectes importants adverses
     std::vector<Insecte*> insectesImportants;
     for (const Hexagon& voisin : voisins) {
         auto it = plateauSimule.find(voisin);
         if (it != plateauSimule.end() && it->second != nullptr) {
             Insecte* adv = it->second;
             if (adv->getOwner() != joueur && (adv->isQueen() || adv->getNom() == "Fourmi")) {
-                // Vérifier si l'insecte important peut se déplacer avant le blocage
-                std::vector<Hexagon> deplacementsAvant = adv->deplacementsPossibles(plateauSimule);
-                if (!deplacementsAvant.empty()) {
+                if (!adv->deplacementsPossibles(plateauSimule).empty()) {
                     insectesImportants.push_back(adv);
                 }
             }
         }
     }
 
-    // Si aucun insecte important n'est affecté, retourner 0
-    if (insectesImportants.empty()) {
-        return 0;
-    }
-
-    // Simuler le plateau avec le déplacement de l'insecte
+    // Simuler le plateau
     std::map<Hexagon, Insecte*> plateauModifie = plateauSimule;
     plateauModifie.erase(anciennePos);
     plateauModifie[nouvelEmplacement] = insecte;
 
-    // Calculer le bonus de blocage
+    // Calculer le bonus
     int totalBonus = 0;
     for (Insecte* adv : insectesImportants) {
-        std::vector<Hexagon> deplacementsApres = adv->deplacementsPossibles(plateauModifie);
-        if (deplacementsApres.empty()) {
+        if (adv->deplacementsPossibles(plateauModifie).empty()) {
             totalBonus += bonusBlocage;
         }
     }
@@ -430,7 +403,7 @@ int JoueurIANiveau2::evaluerDeplacementAction(const Joueur* joueur, Insecte* ins
                                               const Hexagon& nouvelEmplacement,
                                               const std::map<Hexagon, Insecte*>& plateauSimule) const {
     // Obtenir la position actuelle de l'insecte via le plateau simulé
-    Hexagon anciennePos = getInsectPosition(plateauSimule, insecte);
+    Hexagon anciennePos = insecte->getCoords();
 
     int scoreTotal = 0;
     scoreTotal += evaluerAttaqueReineAdverse(joueur, insecte, nouvelEmplacement, plateauSimule);
@@ -682,6 +655,15 @@ int JoueurIANiveau2::getInputForAction() {
     return static_cast<int>(actionChoisie);
 }
 
+void JoueurIANiveau2::mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau) const {
+    for (auto& [position, insecte] : plateau) {
+        if (insecte) {
+            insecte->setCoords(position); // Mettre à jour les coordonnées de l'insecte
+        }
+    }
+}
+
+
 
 
 int JoueurIANiveau2::getInputForDeckIndex() {
@@ -734,31 +716,22 @@ int JoueurIANiveau2::getInputForMovementIndex(std::vector<Hexagon> deplacementsP
     return findIndexInOptions(this, insecteChoisi, candidats, deplacementsPossibles);
 }
 
-std::map<Hexagon, Insecte*> JoueurIANiveau3::simulerCoup(
-    const std::map<Hexagon, Insecte*>& plateauSimule,
-    const std::pair<Insecte*, Hexagon>& coup,
-    std::vector<Insecte*>& deckMaximisateur,
-    std::vector<Insecte*>& deckMinimisateur,
-    bool estMaximisant) {
+std::map<Hexagon, Insecte*> JoueurIANiveau3::simulerCoup(std::map<Hexagon, Insecte*>& plateauSimule,
+                                                        const std::pair<Insecte*, Hexagon>& coup,
+                                                        std::vector<Insecte*>& deckMaximisateur,
+                                                        std::vector<Insecte*>& deckMinimisateur,
+                                                        bool estMaximisant) {
 
-    // Copier le plateau simulé pour effectuer les modifications
-    std::map<Hexagon, Insecte*> plateauModifie = plateauSimule;
     Insecte* insecte = coup.first;
     const Hexagon& nouvellePosition = coup.second;
 
-    // Vérifier si l'action est un placement
-    bool estUnPlacement = estPlacement(plateauModifie, insecte);
-
-    if (estUnPlacement) {
-        // Ajouter l'insecte à la nouvelle position sur le plateau
-        plateauModifie[nouvellePosition] = insecte;
+    if (estPlacement(plateauSimule, insecte)) {
 
         // Obtenir le deck correspondant (maximisateur ou minimisateur)
         std::vector<Insecte*>& deckActuel = estMaximisant ? deckMaximisateur : deckMinimisateur;
 
         // Rechercher l'insecte dans le deck et le retirer
-        auto it = std::find_if(deckActuel.begin(), deckActuel.end(),
-                               [&insecte](Insecte* i) { return i->getNom() == insecte->getNom(); });
+        auto it = std::find(deckActuel.begin(), deckActuel.end(), insecte);
 
         if (it != deckActuel.end()) {
             deckActuel.erase(it);
@@ -769,66 +742,61 @@ std::map<Hexagon, Insecte*> JoueurIANiveau3::simulerCoup(
             }
             throw std::runtime_error("Insecte non trouvé dans le deck pour le placement.");
         }
+        // Ajouter l'insecte à la nouvelle position sur le plateau
+        plateauSimule[nouvellePosition] = insecte;
 
     } else {
         // Déplacement d'un insecte déjà placé
-        Hexagon anciennePosition = getInsectPosition(plateauModifie, insecte);
+        Hexagon anciennePosition = insecte->getCoords();
 
         // Retirer l'insecte de son ancienne position
-        plateauModifie.erase(anciennePosition);
+        plateauSimule.erase(anciennePosition);
 
         // Ajouter l'insecte à sa nouvelle position
-        plateauModifie[nouvellePosition] = insecte;
+        plateauSimule[nouvellePosition] = insecte;
     }
 
-    return plateauModifie;
+    insecte->setCoords(nouvellePosition);
+
+    return plateauSimule;
 }
 
 
 
-int JoueurIANiveau3::minimax(std::map<Hexagon, Insecte*> plateau, int profondeur, bool maximisateur, int alpha, int beta,
-                             std::stack<std::vector<Insecte*>>& pileDeckMax, std::stack<std::vector<Insecte*>>& pileDeckMin) {
+int JoueurIANiveau3::minimax(std::map<Hexagon, Insecte*> plateau,int profondeur,bool maximisateur,int alpha,int beta,
+                                std::vector<Insecte*>& deckMax,std::vector<Insecte*>& deckMin) {
 
-    // Récupérer les decks courants depuis la pile
-    auto& deckMaxCourant = pileDeckMax.top();
-    auto& deckMinCourant = pileDeckMin.top();
 
     // Cas de base : profondeur zéro ou état terminal
-    if (profondeur <= 0 || estTerminal(plateau, deckMaxCourant, deckMinCourant)) {
-        return evaluerPlateau(plateau, deckMaxCourant, deckMinCourant);
+    if (profondeur <= 0 || estTerminal(plateau, deckMax, deckMin)) {
+        return evaluerPlateau(plateau, deckMax, deckMin);
     }
 
     if (maximisateur) {
         int meilleurScore = -std::numeric_limits<int>::max();
 
         // Générer les coups possibles pour le maximisateur
-        auto coupsPossibles = genererCoups(plateau, true, deckMaxCourant, deckMinCourant);
+        auto coupsPossibles = genererCoups(plateau, true, deckMax, deckMin);
 
         if (coupsPossibles.empty()) {
             // Aucun coup possible, retourner un score d'état terminal
-            return evaluerPlateau(plateau, deckMaxCourant, deckMinCourant);
+            return evaluerPlateau(plateau, deckMax, deckMin);
         }
 
         for (auto& [insecte, positions] : coupsPossibles) {
             for (auto& position : positions) {
-                auto deckMaxCopy = deckMaxCourant;
-                auto deckMinCopy = deckMinCourant;
+                Hexagon anciennePosition = insecte->getCoords();
+                bool estPlacement = this->estPlacement(plateau, insecte);
 
                 // Simuler le coup
                 auto plateauSimule = simulerCoup(plateau, std::make_pair(insecte, position),
-                                                 deckMaxCopy, deckMinCopy, true);
-
-                mettreAJourCoordonneesInsectes(plateauSimule);
-                // Empiler les decks simulés
-                pileDeckMax.push(deckMaxCopy);
-                pileDeckMin.push(deckMinCopy);
+                                                 deckMax, deckMin, true);
 
                 // Appel récursif pour minimisateur
-                int score = minimax(plateauSimule, profondeur - 1, false, alpha, beta, pileDeckMax, pileDeckMin);
+                int score = minimax(plateauSimule, profondeur - 1, false, alpha, beta, deckMax, deckMin);
 
-                // Dépiler les decks après l'appel
-                pileDeckMax.pop();
-                pileDeckMin.pop();
+                // Undo : Restaurer l'état initial
+                undoCoup(plateau, insecte, anciennePosition, position, estPlacement, deckMax, deckMin, maximisateur);
 
                 // Mise à jour des scores
                 meilleurScore = std::max(meilleurScore, score);
@@ -846,33 +814,27 @@ int JoueurIANiveau3::minimax(std::map<Hexagon, Insecte*> plateau, int profondeur
         int meilleurScore = std::numeric_limits<int>::max();
 
         // Générer les coups possibles pour le minimisateur
-        auto coupsPossibles = genererCoups(plateau, false, deckMaxCourant, deckMinCourant);
+        auto coupsPossibles = genererCoups(plateau, false, deckMax, deckMin);
 
         if (coupsPossibles.empty()) {
             // Aucun coup possible, retourner un score d'état terminal
-            return evaluerPlateau(plateau, deckMaxCourant, deckMinCourant);
+            return evaluerPlateau(plateau, deckMax, deckMin);
         }
 
         for (auto& [insecte, positions] : coupsPossibles) {
             for (auto& position : positions) {
-                auto deckMaxCopy = deckMaxCourant;
-                auto deckMinCopy = deckMinCourant;
+                Hexagon anciennePosition = insecte->getCoords();
+                bool estPlacement = this->estPlacement(plateau, insecte);
 
                 // Simuler le coup
                 auto plateauSimule = simulerCoup(plateau, std::make_pair(insecte, position),
-                                                 deckMaxCopy, deckMinCopy, false);
-
-                mettreAJourCoordonneesInsectes(plateauSimule);
-                // Empiler les decks simulés
-                pileDeckMax.push(deckMaxCopy);
-                pileDeckMin.push(deckMinCopy);
+                                                 deckMax, deckMin, false);
 
                 // Appel récursif pour maximisateur
-                int score = minimax(plateauSimule, profondeur - 1, true, alpha, beta, pileDeckMax, pileDeckMin);
+                int score = minimax(plateauSimule, profondeur - 1, true, alpha, beta, deckMax, deckMin);
 
-                // Dépiler les decks après l'appel
-                pileDeckMax.pop();
-                pileDeckMin.pop();
+                // Undo : Restaurer l'état initial
+                undoCoup(plateau, insecte, anciennePosition, position, estPlacement, deckMax, deckMin, maximisateur);
 
                 // Mise à jour des scores
                 meilleurScore = std::min(meilleurScore, score);
@@ -1044,13 +1006,33 @@ bool JoueurIANiveau3::estPlacement(const std::map<Hexagon, Insecte*>& plateau, I
     return true; // L'insecte n'est pas encore placé
 }
 
-void JoueurIANiveau3::mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau) {
-    for (auto& [position, insecte] : plateau) {
-        if (insecte) {
-            insecte->setCoords(position); // Mettre à jour les coordonnées de l'insecte
-        }
+// Fonction pour annuler un coup
+void JoueurIANiveau3::undoCoup(
+    std::map<Hexagon, Insecte*>& plateau,
+    Insecte* insecte,
+    const Hexagon& anciennePosition,
+    const Hexagon& nouvellePosition,
+    bool estPlacement,
+    std::vector<Insecte*>& deckMax,
+    std::vector<Insecte*>& deckMin,
+    bool maximisateur) {
+
+    auto& deckActuel = maximisateur ? deckMax : deckMin;
+
+    if (estPlacement) {
+        // Retirer l'insecte du plateau et le remettre dans le deck
+        plateau.erase(nouvellePosition);
+        deckActuel.push_back(insecte);
+    } else {
+        // Déplacer l'insecte à sa position initiale
+        plateau.erase(nouvellePosition);
+        plateau[anciennePosition] = insecte;
     }
+
+    // Restaurer les coordonnées de l'insecte
+    insecte->setCoords(anciennePosition);
 }
+
 
 
 

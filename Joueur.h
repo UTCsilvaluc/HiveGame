@@ -348,6 +348,8 @@ public:
                                            const std::map<Insecte*, std::vector<Hexagon>>& candidats,
                                            const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
+    void mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau) const;
+
 
     // Implémentations des fonctions virtuelles
     int getInputForAction() override;
@@ -365,71 +367,67 @@ public:
 
     Joueur* adversaire; // Pointeur vers l'adversaire
 
-    int getInputForAction() override {
-        reinitialiserAttributs();
+   int getInputForAction() override {
+    reinitialiserAttributs();
 
-        int meilleurScore = -std::numeric_limits<int>::max();
-        std::pair<Insecte*, Hexagon> meilleurCoup{nullptr, Hexagon()};
+    int meilleurScore = -std::numeric_limits<int>::max();
+    std::pair<Insecte*, Hexagon> meilleurCoup{nullptr, Hexagon()};
 
-        // Stacks pour gérer les decks
-        std::stack<std::vector<Insecte*>> pileDeckMax;
-        std::stack<std::vector<Insecte*>> pileDeckMin;
+    // Créer des copies des decks pour éviter de modifier les originaux
+    std::vector<Insecte*> deckMax = copierDeck(this);
+    std::vector<Insecte*> deckMin = copierDeck(adversaire);
+    // Créer une copie locale du plateau à partir de getPlateau()
+    std::map<Hexagon, Insecte*> plateauLocal = getPlateau();
 
-        // Empiler l'état initial des decks
-        pileDeckMax.push(copierDeck(this));
-        pileDeckMin.push(copierDeck(adversaire));
 
-        // Récupération des decks courants
-        auto& deckMaxCourant = pileDeckMax.top();
-        auto& deckMinCourant = pileDeckMin.top();
+    // Générer les coups possibles pour le joueur IA
+    auto coupsPossibles = genererCoups(getPlateau(), true, deckMax, deckMin);
 
-        auto coupsPossibles = genererCoups(getPlateau(), true, deckMaxCourant, deckMinCourant);
-
-        // Si aucun coup possible, fallback
-        if (coupsPossibles.empty()) {
-            actionChoisie = AUCUN_ACTION;
-            return static_cast<int>(actionChoisie);
-        }
-
-        // Parcourir les coups et évaluer via minimax
-        for (auto& [insecte, positions] : coupsPossibles) {
-            for (auto& position : positions) {
-                // Copier les decks actuels avant de simuler le coup
-                auto deckMaxCopy = deckMaxCourant;
-                auto deckMinCopy = deckMinCourant;
-
-                auto plateauSimule = simulerCoup(getPlateau(), std::make_pair(insecte, position),
-                                                 deckMaxCopy, deckMinCopy, true);
-
-                // Empiler les decks mis à jour
-                pileDeckMax.push(deckMaxCopy);
-                pileDeckMin.push(deckMinCopy);
-
-                int score = minimax(plateauSimule, 3, false, -std::numeric_limits<int>::max(),
-                                    std::numeric_limits<int>::max(), pileDeckMax, pileDeckMin);
-
-                // Dépiler après exploration
-                pileDeckMax.pop();
-                pileDeckMin.pop();
-
-                if (score > meilleurScore) {
-                    meilleurScore = score;
-                    meilleurCoup = {insecte, position};
-                }
-            }
-        }
-        reinitialiserAttributs();
-        // Ajouter le meilleur coup aux candidats
-        candidats[meilleurCoup.first].push_back(meilleurCoup.second);
-
-        // Déterminer l'action en fonction de si l'insecte était déjà placé ou non
-        bool placement = estPlacement(getPlateau(), meilleurCoup.first);
-        actionChoisie = placement ? PLACER : DEPLACER;
-
-        mettreAJourCoordonneesInsectes(getPlateau());
-
+    // Si aucun coup possible, retour à une action par défaut
+    if (coupsPossibles.empty()) {
+        actionChoisie = AUCUN_ACTION;
         return static_cast<int>(actionChoisie);
     }
+
+    // Parcourir les coups possibles pour évaluer leur score
+    for (auto& [insecte, positions] : coupsPossibles) {
+        for (auto& position : positions) {
+            // Sauvegarder l'état initial pour annulation
+            Hexagon anciennePosition = insecte->getCoords();
+            bool estPlacement = this->estPlacement(getPlateau(), insecte);
+
+            // Simuler le coup sur une copie du plateau
+            auto plateauSimule = simulerCoup(plateauLocal, std::make_pair(insecte, position), deckMax, deckMin, true);
+
+            // Calculer le score en appelant minimax
+            int score = minimax(plateauSimule, 3, false, -std::numeric_limits<int>::max(),
+                                std::numeric_limits<int>::max(), deckMax, deckMin);
+
+            undoCoup(plateauLocal, insecte, anciennePosition, position, estPlacement, deckMax, deckMin, true);
+
+
+            // Mettre à jour le meilleur coup si le score est supérieur
+            if (score > meilleurScore) {
+                meilleurScore = score;
+                meilleurCoup = {insecte, position};
+            }
+        }
+    }
+
+    reinitialiserAttributs();
+
+    // Ajouter le meilleur coup aux candidats
+    candidats[meilleurCoup.first].push_back(meilleurCoup.second);
+
+    // Déterminer l'action choisie (placement ou déplacement)
+    bool placement = estPlacement(getPlateau(), meilleurCoup.first);
+    actionChoisie = placement ? PLACER : DEPLACER;
+
+    mettreAJourCoordonneesInsectes(getPlateau());
+
+    return static_cast<int>(actionChoisie);
+}
+
 
     int getInputForDeckIndex() override {
         return JoueurIANiveau2::getInputForDeckIndex();
@@ -449,8 +447,8 @@ public:
 
 private:
 
-    int minimax(std::map<Hexagon, Insecte*> plateau, int profondeur, bool maximisateur, int alpha, int beta,
-                std::stack<std::vector<Insecte*>>& pileDeckMax, std::stack<std::vector<Insecte*>>& pileDeckMin);
+    int minimax(std::map<Hexagon, Insecte*> plateau,int profondeur,bool maximisateur,int alpha,int beta,
+                                std::vector<Insecte*>& deckMax,std::vector<Insecte*>& deckMin);
 
     int evaluerPlateau(const std::map<Hexagon, Insecte*>& plateau,
                        const std::vector<Insecte*>& deckMaximisateur,
@@ -471,7 +469,7 @@ private:
                                                                     const std::vector<Insecte*>& deckMinimisateur);
 
 
-    std::map<Hexagon, Insecte*> simulerCoup(const std::map<Hexagon, Insecte*>& plateau,
+    std::map<Hexagon, Insecte*> simulerCoup(std::map<Hexagon, Insecte*>& plateau,
                                             const std::pair<Insecte*, Hexagon>& coup,
                                             std::vector<Insecte*>& deckMaximisateur,
                                             std::vector<Insecte*>& deckMinimisateur,
@@ -482,7 +480,9 @@ private:
 
     bool estPlacement(const std::map<Hexagon, Insecte*>& plateau, Insecte* insecte);
 
-    void mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau);
+    // Fonction pour annuler un coup
+    void undoCoup(std::map<Hexagon, Insecte*>& plateau, Insecte* insecte, const Hexagon& anciennePosition, const Hexagon& nouvellePosition,
+                bool estPlacement, std::vector<Insecte*>& deckMax, std::vector<Insecte*>& deckMin, bool maximisateur);
 };
 
 

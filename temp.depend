@@ -36,7 +36,7 @@
 	<limits>
 	<iostream>
 
-1734105187 c:\users\jean-\desktop\group\hivegame\joueur.h
+1734113584 c:\users\jean-\desktop\group\hivegame\joueur.h
 	"Insecte.h"
 	<vector>
 	<cstdlib>
@@ -84,10 +84,10 @@
 	"Hexagon.h"
 	<sstream>
 
-1734097939 source:c:\users\jean-\desktop\group\hivegame\insecte.cpp
+1734110531 source:c:\users\jean-\desktop\group\hivegame\insecte.cpp
 	"Insecte.h"
 
-1734102359 source:c:\users\jean-\desktop\group\hivegame\joueur.cpp
+1734109429 source:c:\users\jean-\desktop\group\hivegame\joueur.cpp
 	"Joueur.h"
 	<sstream>
 
