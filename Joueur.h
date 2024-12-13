@@ -215,6 +215,45 @@ public:
 };
 
 
+// Dans JoueurIANiveau2.h ou .cpp
+#include <unordered_map>
+
+// Clé qui représente l'état local d'une évaluation
+// (Insecte*, coordonnée, hash du plateau)
+struct HeuristicKey {
+    const Insecte* insecte;
+    Hexagon coords;
+    std::size_t plateauHash; // Un hash global du plateau
+
+    bool operator==(const HeuristicKey& other) const {
+        return (insecte == other.insecte && coords == other.coords && plateauHash == other.plateauHash);
+    }
+};
+
+// Hash custom pour HeuristicKey
+struct HeuristicKeyHash {
+    std::size_t operator()(const HeuristicKey& key) const {
+        // Combine les pointeurs + coords + plateauHash
+        // On utilise reinterpret_cast pour le pointeur d’insecte
+        auto ptrVal = reinterpret_cast<std::uintptr_t>(key.insecte);
+        std::size_t seed = std::hash<std::uintptr_t>()(ptrVal);
+
+        // Combine coords
+        seed ^= std::hash<int>()(key.coords.getQ()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<int>()(key.coords.getR()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+
+        // Combine plateauHash
+        seed ^= std::hash<std::size_t>()(key.plateauHash) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+
+        return seed;
+    }
+};
+
+// Cache global ou membre de classe : stocke le résultat de l’heuristique
+static std::unordered_map<HeuristicKey, int, HeuristicKeyHash> heuristicsCache;
+
+
+
 
 
 
@@ -350,6 +389,13 @@ public:
 
     void mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau) const;
 
+    std::size_t hashPlateau(const std::map<Hexagon, Insecte*>& plateau) const;
+
+    // Dans JoueurIANiveau2.h ou .cpp
+
+    int heuristiquePreliminaire(const Joueur* joueur, Insecte* insecte, const Hexagon& emplacement, const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+
 
     // Implémentations des fonctions virtuelles
     int getInputForAction() override;
@@ -360,12 +406,116 @@ public:
 
 };
 
+// On va créer une structure pour stocker l’information dans la table de transposition
+struct TranspositionEntry {
+    int profondeur;  // Profondeur à laquelle on a calculé ce score
+    int alpha;       // Valeur alpha à l'enregistrement
+    int beta;        // Valeur beta à l'enregistrement
+    int score;       // Score résultant
+};
+
+#include <functional>    // std::hash
+#include <unordered_map> // std::unordered_map
+
+struct GameState {
+    std::map<Hexagon, Insecte*> plateau;
+    std::vector<Insecte*> deckMax;
+    std::vector<Insecte*> deckMin;
+    int profondeur;
+    bool maximisateur;
+    int alpha;
+    int beta;
+    // ... d’autres infos si besoin
+};
+
+struct GameStateHash {
+    std::size_t operator()(const GameState& gs) const {
+        // Combinateur de hachage
+        // Il existe plusieurs façons de hacher, en voici une indicative
+        std::size_t seed = 0;
+        std::hash<std::string> hashString;
+        std::hash<int> hashInt;
+
+        // 1) Hachage du plateau
+        //    On itère sur tous les (Hexagon, Insecte*) occupés pour créer une "signature"
+        for (auto& [hex, insecte] : gs.plateau) {
+            // Combiner les coordonnées
+            seed ^= std::hash<int>()(hex.getQ()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+            seed ^= std::hash<int>()(hex.getR()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+            // Combiner une forme d’ID unique de l’insecte (ex: son nom, ou un ID int).
+            seed ^= hashString(insecte->getNom()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        }
+
+        // 2) Hachage du deck du maximisateur
+        for (Insecte* insecte : gs.deckMax) {
+            seed ^= hashString(insecte->getNom()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        }
+
+        // 3) Hachage du deck du minimisateur
+        for (Insecte* insecte : gs.deckMin) {
+            seed ^= hashString(insecte->getNom()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        }
+
+        // 4) Hachage des paramètres minimax (profondeur, alpha, beta, etc.)
+        seed ^= hashInt(gs.profondeur) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        seed ^= hashInt(gs.alpha)      + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        seed ^= hashInt(gs.beta)       + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<bool>()(gs.maximisateur) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+
+        return seed;
+    }
+};
+
+struct GameStateEqual {
+    bool operator()(const GameState& a, const GameState& b) const {
+        // On vérifie l’égalité stricte
+        // (remplacez par votre propre critère si nécessaire)
+        if (a.profondeur != b.profondeur) return false;
+        if (a.maximisateur != b.maximisateur) return false;
+        if (a.alpha != b.alpha || a.beta != b.beta) return false;
+
+        if (a.plateau.size() != b.plateau.size()) return false;
+        for (auto& [hex, insectA] : a.plateau) {
+            auto it = b.plateau.find(hex);
+            if (it == b.plateau.end()) return false;
+            Insecte* insectB = it->second;
+            if (insectA->getNom() != insectB->getNom()) return false;
+        }
+
+        if (a.deckMax.size() != b.deckMax.size()) return false;
+        // Comparer les noms (ou ID) des insectes du deck
+        // Pour être plus robuste, on peut trier avant comparaison, ou compter par type d’insecte
+        for (size_t i = 0; i < a.deckMax.size(); ++i) {
+            if (a.deckMax[i]->getNom() != b.deckMax[i]->getNom()) {
+                return false;
+            }
+        }
+
+        if (a.deckMin.size() != b.deckMin.size()) return false;
+        for (size_t i = 0; i < a.deckMin.size(); ++i) {
+            if (a.deckMin[i]->getNom() != b.deckMin[i]->getNom()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
+static std::unordered_map<GameState, int, GameStateHash, GameStateEqual> transpositionTable;
+
+
+
+
+
 class JoueurIANiveau3 : public JoueurIANiveau2 {
 public:
     JoueurIANiveau3(std::string nom, const std::map<Hexagon, Insecte*>* plateauRef, unsigned int* tourRef, Joueur* adversaireRef)
             : JoueurIANiveau2(nom, plateauRef, tourRef), adversaire(adversaireRef) {}
 
     Joueur* adversaire; // Pointeur vers l'adversaire
+    // Transposition table globale ou membre de la classe JoueurIANiveau3
+
 
    int getInputForAction() override {
     reinitialiserAttributs();
@@ -483,9 +633,19 @@ private:
     // Fonction pour annuler un coup
     void undoCoup(std::map<Hexagon, Insecte*>& plateau, Insecte* insecte, const Hexagon& anciennePosition, const Hexagon& nouvellePosition,
                 bool estPlacement, std::vector<Insecte*>& deckMax, std::vector<Insecte*>& deckMin, bool maximisateur);
+
+    // Nouvelle fonction : calculer un hash (Zobrist ou simplifié) pour l'état du jeu.
+    // L'idée est de transformer la configuration plateau+deckMax+deckMin en un size_t unique.
+    // Ici, on montre un hachage simplifié. Pour un hachage robuste, se renseigner sur le Zobrist hashing.
+    size_t computeGameStateHash(const std::map<Hexagon, Insecte*>& plateau,
+                                const std::vector<Insecte*>& deckMax,
+                                const std::vector<Insecte*>& deckMin,
+                                bool maximisateur,
+                                int profondeur,
+                                int alpha,
+                                int beta);
+
 };
-
-
 
 
 
