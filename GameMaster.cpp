@@ -921,56 +921,8 @@ void GameMaster::saveGame() {
 
 
 
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <stdexcept>
-/*
-void GameMaster::loadGame(const std::string& fileName) {
-    std::ifstream file(fileName);
-    if (!file.is_open()) {
-        throw std::runtime_error("Erreur : Impossible d'ouvrir le fichier de sauvegarde.");
-    }
 
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-    std::string jsonContent = buffer.str();
 
-    // Simple parsing pour extraire les parties de données du JSON
-    // Vous devrez probablement ajuster cela pour que ce soit plus robuste
-
-    // Exemple de découpe basique du JSON
-    if (jsonContent.find("\"plateau\"") != std::string::npos) {
-        // Extraire et reconstruire l'objet Plateau
-        size_t startPos = jsonContent.find("\"plateau\":") + 10;
-        size_t endPos = jsonContent.find("\"joueur1\":");
-        std::string plateauData = jsonContent.substr(startPos, endPos - startPos);
-
-        // Appel de la méthode fromJson pour Plateau
-        plateau.fromJson(plateauData); // Implémentez fromJson pour Plateau
-
-        // Extraire et reconstruire les joueurs
-        startPos = endPos + 10;
-        endPos = jsonContent.find("\"mode\":");
-        std::string joueur1Data = jsonContent.substr(startPos, endPos - startPos);
-
-        joueur1->fromJson(joueur1Data); // Implémentez fromJson pour Joueur
-
-        // Idem pour le joueur2 et autres paramètres
-        startPos = endPos + 7;
-        endPos = jsonContent.find("\"maxRetourArriere\":");
-        std::string joueur2Data = jsonContent.substr(startPos, endPos - startPos);
-
-        joueur2->fromJson(joueur2Data);
-        mode = std::stoi(jsonContent.substr(endPos + 19, 1)); // Extraction de mode
-        tour = std::stoi(jsonContent.substr(endPos + 27, 1)); // Extraction de tour
-        maxRetourArriere = std::stoi(jsonContent.substr(endPos + 41, 1)); // Extraction de maxRetourArriere
-    }
-
-    file.close();
-    std::cout << "Partie chargée avec succès depuis " << fileName << "." << std::endl;
-}
-*/
 
 
 
