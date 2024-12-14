@@ -1,5 +1,5 @@
 #include "Plateau.h"
-
+#include <iomanip>
 void Plateau::ajouterInsecte(Insecte* insecte, Hexagon position) {
 
     if (plateauMap.count(position)) {
@@ -9,7 +9,6 @@ void Plateau::ajouterInsecte(Insecte* insecte, Hexagon position) {
     } else {
         plateauMap[position] = insecte;
         insecte->setCoords(position);
-        insectesSurPlateau.push_back(insecte);
         mettreAJourLimites();
         std::cout << "Pion place avec succes en " << position << "." << std::endl;
     }
@@ -229,37 +228,49 @@ void Plateau::supprimerInsectePlateauCoords(const Hexagon& position) {
     plateauMap.erase(it); // Supprimer l'insecte de la map
 
     // Retirer l'insecte de la liste des insectes sur le plateau
-    auto itInsecte = std::find(insectesSurPlateau.begin(), insectesSurPlateau.end(), insecteASupprimer);
-    if (itInsecte != insectesSurPlateau.end()) {
-        insectesSurPlateau.erase(itInsecte);
-    }
     mettreAJourLimites();
 }
+std::string escapeJson(const std::string& input) {
+    std::ostringstream escaped;
+    for (char c : input) {
+        switch (c) {
+            case '\"': escaped << "\\\""; break; // Échapper les guillemets
+            case '\\': escaped << "\\\\"; break; // Échapper les barres obliques inverses
+            case '\b': escaped << "\\b"; break;  // Échapper backspace
+            case '\f': escaped << "\\f"; break;  // Échapper form feed
+            case '\n': escaped << "\\n"; break;  // Échapper nouvelle ligne
+            case '\r': escaped << "\\r"; break;  // Échapper retour chariot
+            case '\t': escaped << "\\t"; break;  // Échapper tabulation
+            default:
+                if (c < 0x20 || c > 0x7E) { // Échapper les caractères non imprimables
+                    escaped << "\\u"
+                            << std::hex << std::setw(4) << std::setfill('0') << (int)c;
+                } else {
+                    escaped << c; // Ajouter tel quel
+                }
+        }
+    }
+    return escaped.str();
+}
+
 std::string Plateau::toJson() const {
     std::stringstream jsonData;
     jsonData << "{\n";
 
     // plateauMap
     jsonData << "  \"plateauMap\": {\n";
-    for (auto it = plateauMap.begin(); it != plateauMap.end(); ++it) {
-        if (it != plateauMap.begin()) {
+    bool firstEntry = true; // Pour éviter la virgule finale
+    for (const auto& it : plateauMap) {
+        if (!firstEntry) {
             jsonData << ",\n";
         }
-        jsonData << "    \"" << it->first.toJson() << "\": "
-                 << (it->second ? it->second->toJson() : "null");
+        firstEntry = false;
+
+        // Conversion de la clé (Hexagon) et gestion de la valeur
+        jsonData << "    \"" << escapeJson(it.first.toJson()) << "\": "
+                 << (it.second ? it.second->toJson() : "null");
     }
     jsonData << "\n  },\n";
-
-    // insectesSurPlateau
-    jsonData << "  \"insectesSurPlateau\": [";
-    for (size_t i = 0; i < insectesSurPlateau.size(); ++i) {
-        if (i != 0) {
-            jsonData << ", ";
-        }
-        jsonData << (insectesSurPlateau[i] ? insectesSurPlateau[i]->toJson() : "null");
-    }
-    jsonData << "],\n";
-
     // nombreRetoursArriere
     jsonData << "  \"nombreRetoursArriere\": " << nombreRetoursArriere << ",\n";
 
@@ -270,9 +281,9 @@ std::string Plateau::toJson() const {
     jsonData << "  \"maxQ\": " << maxQ << "\n";
 
     jsonData << "}";
-
     return jsonData.str();
 }
+
 void Plateau::afficherPossibilitesDeplacements(const Insecte* insecte, const std::vector<Hexagon> deplacementsPossibles) const {
     std::cout << "Déplacements possibles pour " << insecte->getNom() << " : \n";
     for (size_t i = 0; i < deplacementsPossibles.size(); ++i) {

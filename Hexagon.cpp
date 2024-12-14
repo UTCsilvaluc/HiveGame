@@ -8,6 +8,6 @@ std::ostream& operator<<(std::ostream &os , const Hexagon& hex){
 
 std::string Hexagon::toJson() const {
     std::stringstream jsonData;
-    jsonData << "{ \"q\": " << q << ", \"r\": " << r << " }";
+    jsonData << "["<<q<<","<<r<<"]";
     return jsonData.str();
 }

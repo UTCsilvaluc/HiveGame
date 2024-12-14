@@ -153,12 +153,13 @@ std::string Joueur::toJson() const {
 
     jsonData << "  \"deck\": [";
     for (size_t i = 0; i < deck.size(); ++i) {
+        jsonData << "\n";
         if (i != 0) {
             jsonData << ", ";  // S�parateur entre les insectes
         }
         jsonData << deck[i]->toJson();  // Appel de toJson pour chaque Insecte
     }
-    jsonData << "]\n";
+    jsonData << "\n]\n";
 
     jsonData << "}";
     return jsonData.str();
@@ -837,7 +838,7 @@ int JoueurIANiveau2::getInputForMovementIndex(std::vector<Hexagon> deplacementsP
     return findIndexInOptions(this, insecteChoisi, candidats, deplacementsPossibles);
 }
 
-std::map<Hexagon, Insecte*> JoueurIANiveau3::simulerCoup(std::map<Hexagon, Insecte*>& plateauSimule,
+/*std::map<Hexagon, Insecte*> JoueurIANiveau3::simulerCoup(std::map<Hexagon, Insecte*>& plateauSimule,
                                                         const std::pair<Insecte*, Hexagon>& coup,
                                                         std::vector<Insecte*>& deckMaximisateur,
                                                         std::vector<Insecte*>& deckMinimisateur,
@@ -1214,7 +1215,7 @@ void JoueurIANiveau3::undoCoup(
 
 
 
-
+*/
 
 
 

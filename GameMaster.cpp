@@ -1,7 +1,32 @@
+#include <dirent.h> // Pour ouvrir et lire les fichiers dans un répertoire
+#include <iostream>
+#include "Insecte.h"  // Supposons que tu as une classe Insecte avec les coordonnées q, r
+#include <regex>
+#include <fstream>
+#include <sstream>
+#include <string>
 #include "GameMaster.h"
+using namespace std;
+
+#include <unordered_map>
+#include <vector>
 void GameMaster::startGame() {
-    //displaySaveGame();
-    std::unordered_map<std::string, double> poidsIA = {
+    int choix;
+    std::cout << "Bienvenue dans HiveGame !\n";
+    std::cout << "Que souhaitez-vous faire ?\n";
+    std::cout << "1 - Lancer une nouvelle partie\n";
+    std::cout << "2 - Charger une partie existante\n";
+    std::cout << "Veuillez entrer votre choix (1 ou 2) : ";
+    std::cin >> choix;
+
+    // Sécurisation de l'entrée
+    while (choix != 1 && choix != 2) {
+        std::cout << "Choix invalide. Veuillez entrer 1 pour une nouvelle partie ou 2 pour charger une partie existante : ";
+        std::cin >> choix;
+    }
+    if (choix == 1) {
+        // Lancer une nouvelle partie
+        std::unordered_map<std::string, double> poidsIA = {
             {"evaluerCohesion", 1},
             {"distanceMin", 10.0},
             {"evaluerAttaqueReineAdverse", 2.0},
@@ -14,43 +39,291 @@ void GameMaster::startGame() {
             {"bougerInsectePourProtegerReine", 5.0},
             {"laisserReineSecurite", 5.0},
             {"bonusBlocage", 7.0}
-    };
+        };
+        std::cout << "\nDémarrage du jeu HiveGame en cours...\n" << std::endl;
+        mode = getInput("Merci de sélectionner le mode de jeu :\n1 - Joueur vs Joueur (JvJ)\n2 - Joueur vs IA (JvIA)\n", 1, 2);
+        if (mode == 1) std::cout << "Vous avez sélectionné le mode : JvJ\n";
+        else {
+            modeIA = getInput("\nMerci de sélectionner le niveau de l'IA :\n1 - Niveau 1 (IA Aléatoire)\n2 - Niveau 2 (IA Heuristique)\n3 - Niveau 3 (IA Niveau MAX)\n", 1, 3);
+            std::cout << "Vous avez sélectionné le niveau : " << (modeIA == 1 ? "Niveau 1" : (modeIA == 2 ? "Niveau 2" : "Niveau 3")) << "\n";
+        }
 
-    std::ifstream file("game_save82.json");
-    std::cout << "\nD�marrage du jeu HiveGame en cours...\n" << std::endl;
-    choixExtensions();
-    mode = getInput("Merci de s�lectionner le mode de jeu :\n1 - Joueur vs Joueur (JvJ)\n2 - Joueur vs IA (JvIA)\n", 1, 2);
-    //std::cout << "Vous avez s�lectionn� le mode : " << (mode == 1 ? "JvJ" : "JvIA") << "\n";
-    if (mode == 1 ) std::cout << "Vous avez s�lectionn� le mode : JvJ" << "\n";
-    else{
-        modeIA = getInput("\nMerci de sï¿½lectionner le niveau de l'IA :\n1 - Niveau 1 (IA Aleatoire)\n2 - Niveau 2 (IA Heuristique)\n3 - Niveau 3 (IA Niveau MAX)\n", 1, 3);
-        std::cout << "Vous avez sï¿½lectionnï¿½ le niveau : " << (modeIA == 1 ? "Niveau 1" : "Niveau 2") << "\n";
-    }
-
-
-    std::string nom;
-    std::cout << "\nMerci de saisir le nom du Joueur" << std::endl;
-    std::cin >> nom;
-
-    joueur1 = new JoueurHumain(nom);  // Cr�er le joueur 1
-
-    if (mode == 1) {
-        std::cout << "\nMerci de saisir le nom du second Joueur" << std::endl;
+        std::string nom;
+        std::cout << "\nMerci de saisir le nom du Joueur : ";
         std::cin >> nom;
-        joueur2 = new JoueurHumain(nom);  // Crï¿½er le joueur 2
-    } else if (modeIA == 1) {
-        joueur2 = new JoueurIA("IA");
-    }else if (modeIA == 2){
-        joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
-    }else if(modeIA == 3){
-        joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
+
+        joueur1 = new JoueurHumain(nom);  // Créer le joueur 1
+
+        if (mode == 1) {
+            std::cout << "\nMerci de saisir le nom du second Joueur : ";
+            std::cin >> nom;
+            joueur2 = new JoueurHumain(nom);  // Créer le joueur 2
+        } else {
+            joueur2 = (modeIA == 1) ? new JoueurIA("IA") :
+                      (modeIA == 2) ? new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA) : nullptr;
+        }
+        creerDeckPourJoueurs();
+    } else {
+        // Charger une partie existante
+        std::cout << "Chargement d'une partie existante...\n";
+        std::vector<std::string> fichiersParties;
+        DIR* dir = opendir("./"); // Ouvre le répertoire courant
+        struct dirent* entry;
+
+        if (dir == nullptr) {
+            std::cout << "Erreur d'ouverture du répertoire.\n";
+            return;
+        }
+
+        // Liste tous les fichiers qui commencent par "game_save"
+        while ((entry = readdir(dir)) != nullptr) {
+            if (std::string(entry->d_name).find("game_save") == 0) {
+                fichiersParties.push_back(entry->d_name);
+            }
+        }
+        closedir(dir); // Ferme le répertoire
+
+        if (fichiersParties.empty()) {
+            std::cout << "Aucune sauvegarde trouvée.\n";
+            return;
+        }
+
+        std::cout << "Voici les sauvegardes disponibles :\n";
+        for (size_t i = 0; i < fichiersParties.size(); ++i) {
+            std::cout << i + 1 << " - " << fichiersParties[i] << "\n";
+        }
+
+        int choixFichier;
+        std::cout << "Veuillez entrer le numéro de la sauvegarde à charger : ";
+        std::cin >> choixFichier;
+
+        // Sécurisation de l'entrée
+        while (choixFichier < 1 || choixFichier > fichiersParties.size()) {
+            std::cout << "Choix invalide. Veuillez entrer un numéro entre 1 et " << fichiersParties.size() << " : ";
+            std::cin >> choixFichier;
+        }
+
+        // Charger la partie choisie
+        std::string fichierCharge = fichiersParties[choixFichier - 1];
+        std::map<Hexagon, Insecte*> newPlat = afficherFichierAvecBlocs(fichierCharge);
+        if (newPlat.size() > 0) {
+            plateau.setPlateauMap(newPlat);
+        } else {
+            std::cout << "Erreur lors du chargement de la partie.\n";
+        }
     }
 
-
-    std::cout << "Joueur 1 cr�� : " << joueur1->getName() << std::endl;
-    std::cout << "Joueur 2 cr�� : " << joueur2->getName() << std::endl;
     jouer();
 }
+void GameMaster::creerDeckPourJoueurs() {
+    InsecteFactoryImpl factory(maxInsecte);
+    std::vector<Insecte*> deck = configurerDeck(factory);
+    joueur1->clearDeck();
+    joueur2->clearDeck();
+    std::cout << "reussite2";
+    for (size_t i = 0; i < deck.size(); ++i) {
+        Insecte* insecte = deck[i];
+        Insecte* newInsecte1 = factory.createInsecte(insecte->getNom() , Hexagon(0,0) , joueur1);
+        Insecte* newInsecte2 = factory.createInsecte(insecte->getNom() , Hexagon(0,0) , joueur2);
+        joueur1->ajouterInsecte(newInsecte1);
+        joueur2->ajouterInsecte(newInsecte2);
+    }
+}
+
+// Fonction auxiliaire pour configurer le deck commun
+std::vector<Insecte*> GameMaster::configurerDeck(InsecteFactoryImpl& factory) {
+    while (true) {
+        std::cout << "\n--- Configuration du deck commun ---\n";
+        std::cout << "Extensions activées :\n";
+        auto extensionsActives = factory.getInsecteExtensionsActives();
+        for (size_t i = 0; i < extensionsActives.size(); ++i) {
+            std::cout << "(" << i + 1 << ") - " << extensionsActives[i] << "\n";
+        }
+
+        std::cout << "\nOptions :\n";
+        std::cout << "1. Activer une extension\n";
+        std::cout << "2. Désactiver une extension\n";
+        std::cout << "3. Modifier le deck (ajouter/retirer occurrences)\n";
+        std::cout << "4. Générer le deck\n";
+        std::cout << "Votre choix : ";
+
+        int choix;
+        std::cin >> choix;
+
+        if (choix == 1) {
+            // Activer une extension
+            auto extensionsDisponibles = factory.getInsecteExtensionsDisponibles();
+            if (extensionsDisponibles.empty()) {
+                std::cout << "Aucune extension disponible.\n";
+                continue;
+            }
+            std::cout << "Extensions disponibles :\n";
+            for (size_t i = 0; i < extensionsDisponibles.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << extensionsDisponibles[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'extension à activer : ";
+            int index;
+            std::cin >> index;
+            if (index > 0 && index <= static_cast<int>(extensionsDisponibles.size())) {
+                factory.activerExtension(extensionsDisponibles[index - 1]);
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 2) {
+            // Désactiver une extension
+            if (extensionsActives.empty()) {
+                std::cout << "Aucune extension activée.\n";
+                continue;
+            }
+            std::cout << "Extensions activées :\n";
+            for (size_t i = 0; i < extensionsActives.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << extensionsActives[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'extension à désactiver : ";
+            int index;
+            std::cin >> index;
+            if (index > 0 && index <= static_cast<int>(extensionsActives.size())) {
+                factory.desactiverExtension(extensionsActives[index - 1]);
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 3) {
+            // Modifier le deck
+            factory.afficherInsectes();
+            std::cout << "1. Ajouter occurrence\n2. Retirer occurrence\n";
+            int action;
+            std::cin >> action;
+
+            std::cout << "Liste des insectes disponibles :\n";
+            auto insectesDisponibles = factory.getInsecteExtensionsDisponibles();
+            for (size_t i = 0; i < insectesDisponibles.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << insectesDisponibles[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'insecte : ";
+            int index;
+            std::cin >> index;
+
+            if (index > 0 && index <= static_cast<int>(insectesDisponibles.size())) {
+                std::string nomInsecte = insectesDisponibles[index - 1];
+                if (action == 1) {
+                    factory.ajouterOccurrence(nomInsecte);
+                } else if (action == 2) {
+                    factory.retirerOccurrence(nomInsecte);
+                } else {
+                    std::cout << "Action invalide.\n";
+                }
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 4) {
+            return factory.genererDeck(Hexagon(0, 0), nullptr); // null comme placeholder pour le joueur
+        } else {
+            std::cout << "Choix invalide. Veuillez réessayer.\n";
+        }
+    }
+}
+
+std::vector<Insecte*> GameMaster::creerDeck() {
+    InsecteFactoryImpl factory(13);
+
+    while (true) {
+        std::cout << "\n--- Configuration des extensions et du deck ---\n";
+        std::cout << "Extensions activées :\n";
+        auto extensionsActives = factory.getInsecteExtensionsActives();
+        for (size_t i = 0; i < extensionsActives.size(); ++i) {
+            std::cout << "(" << i + 1 << ") - " << extensionsActives[i] << "\n";
+        }
+
+        std::cout << "\nOptions :\n";
+        std::cout << "1. Activer une extension\n";
+        std::cout << "2. Désactiver une extension\n";
+        std::cout << "3. Modifier le deck (ajouter/retirer occurrences)\n";
+        std::cout << "4. Générer le deck\n";
+        std::cout << "Votre choix : ";
+
+        int choix;
+        std::cin >> choix;
+
+        if (choix == 1) {
+            // Activer une extension
+            auto extensionsDisponibles = factory.getInsecteExtensionsDisponibles();
+            if (extensionsDisponibles.empty()) {
+                std::cout << "Aucune extension disponible.\n";
+                continue;
+            }
+            std::cout << "Extensions disponibles :\n";
+            for (size_t i = 0; i < extensionsDisponibles.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << extensionsDisponibles[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'extension à activer : ";
+            int index;
+            std::cin >> index;
+            if (index > 0 && index <= static_cast<int>(extensionsDisponibles.size())) {
+                factory.activerExtension(extensionsDisponibles[index - 1]);
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 2) {
+            // Désactiver une extension
+            if (extensionsActives.empty()) {
+                std::cout << "Aucune extension activée.\n";
+                continue;
+            }
+            std::cout << "Extensions activées :\n";
+            for (size_t i = 0; i < extensionsActives.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << extensionsActives[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'extension à désactiver : ";
+            int index;
+            std::cin >> index;
+            if (index > 0 && index <= static_cast<int>(extensionsActives.size())) {
+                factory.desactiverExtension(extensionsActives[index - 1]);
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 3) {
+            // Modifier le deck
+            factory.afficherInsectes();
+            std::cout << "1. Ajouter occurrence\n2. Retirer occurrence\n";
+            int action;
+            std::cin >> action;
+
+            std::cout << "Liste des insectes disponibles :\n";
+            auto insectesDisponibles = factory.getInsecteExtensionsDisponibles();  // Récupérer les insectes jouables
+            for (size_t i = 0; i < insectesDisponibles.size(); ++i) {
+                std::cout << "(" << i + 1 << ") - " << insectesDisponibles[i] << "\n";
+            }
+            std::cout << "Entrez l'index de l'insecte : ";
+            int index;
+            std::cin >> index;
+
+            if (index > 0 && index <= static_cast<int>(insectesDisponibles.size())) {
+                std::string nomInsecte = insectesDisponibles[index - 1];
+                if (action == 1) {
+                    factory.ajouterOccurrence(nomInsecte);
+                } else if (action == 2) {
+                    factory.retirerOccurrence(nomInsecte);
+                } else {
+                    std::cout << "Action invalide.\n";
+                }
+            } else {
+                std::cout << "Index invalide.\n";
+            }
+
+        } else if (choix == 4) {
+            // Générer le deck
+            return factory.genererDeck(Hexagon(0, 0), joueur1);
+        } else {
+            std::cout << "Choix invalide. Veuillez réessayer.\n";
+        }
+    }
+}
+
 
 void GameMaster::startGameForIA() {
     std::unordered_map<std::string, double> poidsIA1 = {
@@ -88,67 +361,197 @@ void GameMaster::startGameForIA() {
     jouer();
 }
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include "GameMaster.h"
-#include "Insecte.h"  // Supposons que tu as une classe Insecte avec les coordonnées q, r
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
-#include "GameMaster.h"
-#include "Insecte.h"  // Supposons que tu as une classe Insecte avec les coordonnées q, r
 
-void GameMaster::displaySaveGame() {
-    // Ouvre le fichier save_game.json
-    std::ifstream file("game_save2.json");
+std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::string& cheminFichier) {
+    InsecteFactoryImpl factory;
+    std::map<Hexagon, Insecte*> pMap;
+    std::unordered_map<std::string, double> poidsIA = {
+            {"evaluerCohesion", 1},
+            {"distanceMin", 10.0},
+            {"evaluerAttaqueReineAdverse", 2.0},
+            {"potentielFuturPlacement", 0.75},
+            {"placement", 0.75},
+            {"MenacerReineAdverse", 10.0},
+            {"plusMenacerReineAdverse", -5.0},
+            {"multiDeRisqueSurReine", 1.5},
+            {"bougerReine", 10.0},
+            {"bougerInsectePourProtegerReine", 5.0},
+            {"laisserReineSecurite", 5.0},
+            {"bonusBlocage", 7.0}
+    };
+    // Mots-clés pour détecter le début des blocs
+    std::vector<std::string> debutBlocs = {"plateauMap", "joueur1", "joueur2"};
+    std::unordered_map<std::string, Joueur*> joueurs;
+    std::ifstream fichier(cheminFichier); // Ouvre le fichier
+    if (!fichier.is_open()) {
+        std::cerr << "Erreur: Impossible d'ouvrir le fichier " << cheminFichier << "\n";
 
-    if (!file.is_open()) {
-        std::cerr << "Erreur : Impossible d'ouvrir le fichier game_save2.json" << std::endl;
-        return;
     }
 
-    std::stringstream jsonData;
-    jsonData << file.rdbuf();  // Lire tout le contenu du fichier dans un stringstream
-    file.close();  // Fermer le fichier après la lecture
+    std::string ligne;
+    std::unordered_map<std::string, std::string> listeContent; // Contenu des blocs
+    std::string contenuBloc = "";  // Accumulateur pour le contenu du bloc
+    int niveauAccolade = 0; // Suivi de l'imbrication des accolades
+    std::string blocEnCours = "";
 
-    std::string jsonContent = jsonData.str();  // Contenu du fichier sous forme de chaîne de caractères
+    // Variables pour afficher les valeurs spécifiques
+    int mode = -1;
+    int tour = -1;
+    int maxRetourArriere = -1;
+    int modeIA = -1;
 
-    std::cout << "Affichage des insectes dans le fichier game_save2.json..." << std::endl;
+    // Lecture ligne par ligne
+    while (std::getline(fichier, ligne)) {
+        // Recherche des blocs
+        for (const std::string& bloc : debutBlocs) {
+            if (ligne.find(bloc) != std::string::npos) {
+                blocEnCours = bloc; // Définit le bloc en cours
+                contenuBloc = "";    // Réinitialise le contenu du bloc
+                niveauAccolade = 0;  // Réinitialise l'imbrication
+            }
+        }
 
-    // Exemple d'extraction et d'affichage de données des insectes
-    size_t pos = 0;
-    std::string insectPattern = "\"nom\": \"";
-    while ((pos = jsonContent.find(insectPattern, pos)) != std::string::npos) {
-        size_t startNom = jsonContent.find("\"nom\": \"", pos) + 8;  // Début du nom
-        size_t endNom = jsonContent.find("\"", startNom);  // Fin du nom
-        std::string nomInsecte = jsonContent.substr(startNom, endNom - startNom);  // Extraire le nom
+        // Si nous sommes dans un bloc, accumuler le contenu
+        if (!blocEnCours.empty()) {
+            contenuBloc += ligne + "\n";
+        }
 
-        // Extraire les coordonnées
-        size_t startQ = jsonContent.find("\"q\":", endNom) + 4;
-        size_t endQ = jsonContent.find(",", startQ);
-        int q = std::stoi(jsonContent.substr(startQ, endQ - startQ));  // Extraire q
+        // Compte les accolades ouvrantes et fermantes pour délimiter les blocs : même algo que les opérations arithmétiques
+        for (char c : ligne) {
+            if (c == '{') {
+                niveauAccolade++;
+            } else if (c == '}') {
+                niveauAccolade--;
+                if (niveauAccolade == 0) {
+                    // Fin du bloc
+                    listeContent[blocEnCours] = contenuBloc;
+                    blocEnCours.clear(); // Réinitialiser le bloc en cours
+                }
+            }
+        }
 
-        size_t startR = jsonContent.find("\"r\":", endQ) + 4;
-        size_t endR = jsonContent.find("}", startR);
-        int r = std::stoi(jsonContent.substr(startR, endR - startR));  // Extraire r
-
-        // Extraire le nom du propriétaire
-        size_t startOwner = jsonContent.find("\"owner\": \"", endR) + 10;
-        size_t endOwner = jsonContent.find("\"", startOwner);
-        std::string owner = jsonContent.substr(startOwner, endOwner - startOwner);  // Extraire le propriétaire
-
-        // Afficher les informations de l'insecte
-        std::cout << "Insecte : " << nomInsecte << ", Coordonnées (q, r) : (" << q << ", " << r << "), Propriétaire : " << owner << std::endl;
-
-        // Avance la position dans le fichier JSON
-        pos = endR;
+        // Recherche des clés spécifiques et extraction des valeurs
+        if (ligne.find("\"mode\":") != std::string::npos) { // cherche la première occurrence de la sous-chaîne "mode" dans la chaîne ligne. npos : "pas de position valide" (not found).
+            mode = std::stoi(ligne.substr(ligne.find(":") + 1));
+        }
+        if (ligne.find("\"tour\":") != std::string::npos) {
+            tour = std::stoi(ligne.substr(ligne.find(":") + 1));
+        }
+        if (ligne.find("\"maxRetourArriere\":") != std::string::npos) {
+            maxRetourArriere = std::stoi(ligne.substr(ligne.find(":") + 1));
+        }
+        if (ligne.find("\"modeIA\":") != std::string::npos) {
+            modeIA = std::stoi(ligne.substr(ligne.find(":") + 1));
+        }
     }
+
+    fichier.close(); // Ferme le fichier après lecture
+    joueur1 = new JoueurHumain("undefined");
+    joueur2 = new JoueurHumain("undefined2");
+    Plateau plateau;
+    if (mode == 1) {
+        joueur2 = new JoueurHumain("undefined2");
+    } else if (modeIA == 1) {
+        joueur2 = new JoueurIA("IA");
+    }else if (modeIA == 2){
+        //Joueur* joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
+    }else if(modeIA == 3){
+        //joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
+    }
+    // Affiche les contenus des blocs détectés
+    for (const auto& [bloc, contenu] : listeContent) {
+        // Traitement spécifique pour les blocs "joueur1", "joueur2", "plateauMap"
+        if (bloc == "joueur1" || bloc == "joueur2") {
+            std::vector<Insecte*> deck;
+            std::istringstream stream(contenu); // Utiliser un flux pour lire ligne par ligne , permet de simuler un getline
+            std::string ligne;
+            while (std::getline(stream, ligne)) {
+                std::istringstream ligneStream(ligne); // même cas que au dessus, simuler un fichier pour parcourir la ligne caractère
+                std::string element;
+                int index = 1;
+                std::vector<std::string> elementsEmpiles;
+                while (std::getline(ligneStream, element, ';')) {
+                    // Nettoyer les espaces autour de l'élément et supprimer les virgules
+                    element = std::regex_replace(element, std::regex("^\\s+|\\s+$"), ""); // Enlever les espaces autour
+
+                    // Nettoyer tout autre espace au milieu de la chaîne
+                    element = std::regex_replace(element, std::regex("\\s+"), ""); // Supprimer les espaces internes supplémentaires
+
+                    elementsEmpiles.push_back(element); // Empiler l'élément dans le vecteur
+                    index++;
+                }
+                if (elementsEmpiles.size() >= 4){
+                    if (joueurs.empty()){
+                        joueurs[elementsEmpiles[3]] = joueur1;
+                        joueur1->setName(elementsEmpiles[3]);
+                        joueurs[elementsEmpiles[3]]->clearDeck();
+                    } else if (joueurs.size() == 1 && joueurs.find(elementsEmpiles[3]) == joueurs.end()){
+                        joueurs[elementsEmpiles[3]] = joueur2;
+                        joueur2->setName(elementsEmpiles[3]);
+                        joueurs[elementsEmpiles[3]]->clearDeck();
+                    }
+                    Hexagon hex(0,0);
+                    Insecte *insecte = factory.createInsecte(elementsEmpiles[1] , hex ,joueurs[elementsEmpiles[3]]);
+                    joueurs[elementsEmpiles[3]]->ajouterInsecte(insecte);
+                }
+            }
+        }
+
+        // Traitement spécifique pour "plateauMap"
+        if (bloc == "plateauMap") {
+            // Séparer chaque ligne en utilisant le délimiteur ":"
+            std::istringstream stream(contenu); // Utiliser un flux pour lire ligne par ligne
+            std::string ligne;
+            while (std::getline(stream, ligne)) {
+
+                std::istringstream ligneStream(ligne);
+                std::string keyValue;
+                std::string element;
+                std::vector<std::string> elementsEmpiles;
+                while (std::getline(ligneStream, keyValue, ':')) {
+                    // Nettoyer et séparer les éléments à partir du délimiteur ';'
+                    std::istringstream keyStream(keyValue);
+                    int index = 1;
+                    while (std::getline(keyStream, element, ';')) {
+                        // Nettoyer les espaces autour de l'élément et supprimer les virgules
+                        element = std::regex_replace(element, std::regex("^\\s+|\\s+$"), ""); // Enlever les espaces autour
+                        element = std::regex_replace(element, std::regex("\\s+"), ""); // Enlever les espaces internes
+                        elementsEmpiles.push_back(element); // Empiler l'élément dans le vecteur
+                        index++;
+                    }
+                    if (elementsEmpiles.size() >= 4){
+                        if (joueurs.empty()){
+                            joueurs[elementsEmpiles[4]] = joueur1;
+                            joueur1->setName(elementsEmpiles[4]);
+                            joueurs[elementsEmpiles[4]]->clearDeck();
+                        } else if (joueurs.size() == 1 && joueurs.find(elementsEmpiles[4]) == joueurs.end()){
+                            joueurs[elementsEmpiles[4]] = joueur2;
+                            joueur2->setName(elementsEmpiles[4]);
+                            joueurs[elementsEmpiles[4]]->clearDeck();
+                        }
+                        std::string element = elementsEmpiles[3]; // Assurez-vous que l'élément est celui que vous attendez
+                        std::regex rgx("\\[(-?\\d+),(-?\\d+)\\]"); // Expression régulière pour capturer les entiers
+                        std::smatch matches;
+                        int q = 0;
+                        int r = 0;
+
+                        // Recherche des valeurs dans l'élément
+                        if (std::regex_match(element, matches, rgx)) {
+                            // Extraction des valeurs
+                            q = std::stoi(matches[1].str());
+                            r = std::stoi(matches[2].str());
+                            // Affichage des valeurs extraites
+                        }
+                        Insecte *insecte = factory.createInsecte(elementsEmpiles[2] , Hexagon(q , r) ,joueurs[elementsEmpiles[4]]);
+                        pMap[Hexagon(q,r)] = insecte;
+                        }
+                }
+            }
+        }
+    }
+    return pMap;
 }
-
 
 GameMaster::~GameMaster() {
     delete joueur1;
@@ -220,6 +623,7 @@ void GameMaster::deplacerPion(Joueur* current) {
 
 
 void GameMaster::jouer() {
+    plateau.afficherPlateau(joueur1 , joueur2);
     bool hasWinner = false;
     while (!hasWinner) {
         Joueur* current = (tour % 2 == 0) ? joueur1 : joueur2;
@@ -476,6 +880,7 @@ std::string GameMaster::toJson() const {
 
     // Max retours arrière
     jsonData << "  \"maxRetourArriere\": " << maxRetourArriere << "\n";
+    jsonData << "  \"modeIA\": " << modeIA << "\n";
 
     jsonData << "}";
     return jsonData.str();

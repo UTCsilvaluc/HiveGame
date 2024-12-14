@@ -17,13 +17,11 @@ class Joueur;
 class Plateau {
 private:
     std::map<Hexagon, Insecte*> plateauMap;
-    std::vector<Insecte*> insectesSurPlateau; // On peut supprimer et faire un deck de joueur, quand un joueur pose un insecte, alors l'insecte disparait de son deck gr�ce � ajouter Insecte
-    //std::vector<Action*> historiqueDesActions;
-    //std::vector<Extension*> extensionsActivees;
     int nombreRetoursArriere;
     int minR, maxR, minQ, maxQ;
 
 public:
+    Plateau(std::map<Hexagon, Insecte*> pMap) : nombreRetoursArriere(3), minR(0), maxR(0), minQ(0), maxQ(0) , plateauMap(pMap) {} // Initialisation par d�faut
     Plateau() : nombreRetoursArriere(3), minR(0), maxR(0), minQ(0), maxQ(0) {} // Initialisation par d�faut
     void afficherPlateauAvecPossibilites(const std::vector<Hexagon>& emplacementsPossibles, Joueur* j1, Joueur* j2, Joueur* current);
     void afficherPossibilitesDeplacements(const Insecte* insecte, const std::vector<Hexagon> deplacementsPossibles) const;
@@ -52,7 +50,7 @@ public:
     void superposerInsecte(Insecte* insecteExistant, Insecte* newInsecte);
 
     void afficherPlateau(Joueur *p1, Joueur *p2) const;
-
+    void setPlateauMap(std::map<Hexagon, Insecte*> pMap){plateauMap = pMap;}
 
     int getMinR() const { return minR; }
     int getMaxR() const { return maxR; }
@@ -65,9 +63,7 @@ public:
         }
         return nullptr;
     }
-    const std::vector<Insecte*>& getInsectesSurPlateau() const {
-        return insectesSurPlateau;
-    }
+
     std::vector<Hexagon> getVoisinsInsectePlateau(Insecte *insecte);
 
 

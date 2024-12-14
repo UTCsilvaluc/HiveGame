@@ -393,17 +393,28 @@ bool ReineAbeille::estEntouree(const std::map<Hexagon, Insecte*>& p) const {
 
 std::string Insecte::toJson() const {
     std::stringstream jsonData;
-    jsonData << "{\n";
-    jsonData << "  \"id\": \"" << static_cast<const void*>(this) << "\",\n";  // Identifiant unique basé sur l'adresse mémoire
-    jsonData << "  \"nom\": \"" << nom << "\",\n";
-    jsonData << "  \"coords\": " << coords.toJson() << ",\n";
-    jsonData << "  \"owner\": \"" << (owner ? owner->getName() : "null") << "\",\n";
-    jsonData << "  \"dessus\": " << (dessus ? "\"" + std::to_string(reinterpret_cast<std::uintptr_t>(dessus)) + "\"" : "null") << ",\n";
-    jsonData << "  \"dessous\": " << (dessous ? "\"" + std::to_string(reinterpret_cast<std::uintptr_t>(dessous)) + "\"" : "null") << "\n";
-    jsonData << "}";
+
+    // Identifiant unique basé sur l'adresse mémoire (unique ID)
+    jsonData << static_cast<const void*>(this) << ";";
+
+    // Nom de l'insecte
+    jsonData << nom << ";";
+
+    // Coordonnées de l'insecte (en supposant que la méthode toJson de Coord retourne une chaîne)
+    jsonData << coords.toJson() << ";";
+
+    // Propriétaire, ou "null" si l'insecte n'a pas de propriétaire
+    jsonData << (owner ? owner->getName() : "null") << ";";
+
+    // Dessus, ou "null" si l'insecte n'a pas de dessus
+    jsonData << (dessus ? std::to_string(reinterpret_cast<std::uintptr_t>(dessus)) : "null") << ";";
+
+    // Dessous, ou "null" si l'insecte n'a pas de dessous
+    jsonData << (dessous ? std::to_string(reinterpret_cast<std::uintptr_t>(dessous)) : "null");
 
     return jsonData.str();
 }
+
 
 std::vector<Hexagon> Insecte::placementsPossiblesDeBase(const std::map<Hexagon, Insecte*>& plateau) const {
     std::vector<Hexagon> validPositions;

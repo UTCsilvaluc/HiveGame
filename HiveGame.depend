@@ -236,3 +236,102 @@
 1733822204 source:c:\users\debru\onedrive\documents\lo21-hive\hivegame\plateau.cpp
 	"Plateau.h"
 
+1733913109 source:c:\users\sillu\hivegame\action.cpp
+	"Action.h"
+
+1733913109 c:\users\sillu\hivegame\action.h
+	"Insecte.h"
+	"Plateau.h"
+	"Joueur.h"
+	<functional>
+	<unordered_map>
+	<memory>
+	<iostream>
+
+1734202972 c:\users\sillu\hivegame\insecte.h
+	"Hexagon.h"
+	"Action.h"
+	"Plateau.h"
+	<string>
+	<iostream>
+	<functional>
+	<map>
+	<sstream>
+	<memory>
+	<set>
+	<algorithm>
+
+1733913109 c:\users\sillu\hivegame\hexagon.h
+	<iostream>
+	<vector>
+
+1734201035 c:\users\sillu\hivegame\plateau.h
+	"Insecte.h"
+	"Hexagon.h"
+	<map>
+	<vector>
+	<limits>
+	<iostream>
+
+1734202665 c:\users\sillu\hivegame\joueur.h
+	"Insecte.h"
+	<vector>
+	<cstdlib>
+	<ctime>
+	<random>
+	<stdexcept>
+	<map>
+	<limits>
+	<stack>
+	<unordered_map>
+	<functional>
+	<unordered_map>
+
+1734190649 source:c:\users\sillu\hivegame\hexagon.cpp
+	"Hexagon.h"
+	<sstream>
+
+1734191780 source:c:\users\sillu\hivegame\insecte.cpp
+	"Insecte.h"
+
+1734192367 source:c:\users\sillu\hivegame\joueur.cpp
+	"Joueur.h"
+	<sstream>
+
+1733913110 source:c:\users\sillu\hivegame\main.cpp
+	"GameMaster.h"
+
+1734203330 c:\users\sillu\hivegame\gamemaster.h
+	<fstream>
+	"Joueur.h"
+	"Plateau.h"
+	"Action.h"
+	<iostream>
+	<memory>
+	<limits>
+	<deque>
+
+1734192196 source:c:\users\sillu\hivegame\plateau.cpp
+	"Plateau.h"
+	<iomanip>
+
+1734205265 source:c:\users\sillu\hivegame\gamemaster.cpp
+	<dirent.h>
+	<iostream>
+	"Insecte.h"
+	<regex>
+	<fstream>
+	<sstream>
+	<string>
+	"GameMaster.h"
+	<unordered_map>
+	<vector>
+	<fstream>
+	<sstream>
+	<fstream>
+	<sstream>
+	<fstream>
+	<sstream>
+	<iostream>
+	<stdexcept>
+

@@ -19,6 +19,7 @@ private:
     unsigned int mode;
     unsigned int modeIA;
     unsigned int tour;
+    unsigned int maxInsecte;
     void deplacerPion(Joueur* current);
     void placerPion(Joueur* current, bool b);
     std::deque<Action*> actionsDeque;
@@ -29,64 +30,20 @@ private:
     void displaySaveGame();
     void undoLastTwoActions();
 public:
+    std::map<Hexagon, Insecte*> afficherFichierAvecBlocs(const std::string& cheminFichier);
     void startGameForIA();
     bool hasPlayQueen(Joueur *currentPlayer);
     GameMaster() : joueur1(nullptr), joueur2(nullptr) , mode(0) {}
     Insecte* selectionnerInsecte(Joueur* current);
     GameMaster(Plateau plateau, unsigned int maxRetourArriere = 5)
             : joueur1(nullptr), joueur2(nullptr), mode(0), tour(0), plateau(plateau), maxRetourArriere(maxRetourArriere) {}
+    std::vector<Insecte*> creerDeck();
     void startGame();
     void jouer();
     bool detectWinner(Joueur *joueur1 , Joueur *joueur2);
-    void choixExtensions() {
-        // Afficher la liste des extensions disponibles
-        while (true) {
-            std::cout << "\n--- Liste des extensions disponibles ---\n";
-            std::vector<std::string> extensionsDisponibles = insecteFactory.getInsecteExtensionsDisponibles();
 
-            if (extensionsDisponibles.empty()) {
-                std::cout << "Aucune extension disponible.\n";
-                break;
-            }
-
-            for (size_t i = 0; i < extensionsDisponibles.size(); ++i) {
-                std::string statut = insecteFactory.estExtensionActive(extensionsDisponibles[i]) ? "(Activée)" : "(Non activée)";
-                std::cout << i + 1 << ". " << extensionsDisponibles[i] << " " << statut << std::endl;
-            }
-            std::cout << "\nEntrez le numéro de l'extension à activer/désactiver (0 pour quitter) : ";
-            int choix;
-            std::cin >> choix;
-            if (choix == 0) {
-                break;
-            }
-
-            if (choix < 1 || choix > extensionsDisponibles.size()) {
-                std::cout << "Choix invalide. Veuillez entrer un numéro valide.\n";
-                continue;
-            }
-
-            std::string extensionChoisie = extensionsDisponibles[choix - 1];
-            bool estActive = insecteFactory.estExtensionActive(extensionChoisie);
-
-            if (estActive) {
-                std::cout << extensionChoisie << " est déjà activée. Vous voulez la désactiver ? (o/n) : ";
-                char reponse;
-                std::cin >> reponse;
-                if (reponse == 'o' || reponse == 'O') {
-                    insecteFactory.desactiverExtension(extensionChoisie);
-                    std::cout << extensionChoisie << " a été désactivée.\n";
-                }
-            } else {
-                std::cout << extensionChoisie << " n'est pas encore activée. Vous voulez l'activer ? (o/n) : ";
-                char reponse;
-                std::cin >> reponse;
-                if (reponse == 'o' || reponse == 'O') {
-                    insecteFactory.activerExtension(extensionChoisie);
-                    std::cout << extensionChoisie << " a été activée.\n";
-                }
-            }
-        }
-    }
+    void creerDeckPourJoueurs();
+    std::vector<Insecte*> configurerDeck(InsecteFactoryImpl& factory);
     void saveGame();
     bool verifierProprietairePion(Joueur* current, Insecte* insecte);
     bool verifierDeplacementsPossiblesPourTousLesInsectes(Joueur* current);

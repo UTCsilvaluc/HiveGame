@@ -22,6 +22,12 @@ private:
     std::string nom;
     std::vector<Insecte*> deck;
 public:
+    void clearDeck(){
+        for (Insecte* insecte : deck) {
+            delete insecte; // Libère la mémoire occupée par l'objet pointé
+        }
+        deck.clear(); // Vide le contenu du vector
+    }
     Joueur(const std::string& nom) : nom(nom), deck(deckDeBase(this)) {}
     Joueur(std::string n, std::vector<Insecte*> d) {
         if (n.empty()) { throw std::invalid_argument("Le nom ne peut pas être vide."); }
@@ -35,7 +41,7 @@ public:
     Insecte* getQueenOnPlateau(const std::map<Hexagon, Insecte*>& plateau) const;
     int findInsectIndexInDeck(const std::vector<Insecte*>& deck, Insecte* insecte);
     Insecte* getReineAdverse(const std::map<Hexagon, Insecte*>& plateau) const;
-
+    void setName(std::string& name){nom = name;}
     int getQueenIndex() const;
     bool hasQueen() const;
     void afficherDeck() const;
@@ -435,7 +441,7 @@ struct GameState {
     // ... d’autres infos si besoin
 };
 
-struct GameStateHash {
+/*struct GameStateHash {
     std::size_t operator()(const GameState& gs) const {
         // Combinateur de hachage
         // Il existe plusieurs façons de hacher, en voici une indicative
@@ -655,7 +661,7 @@ private:
 };
 
 
-
+*/
 
 
 #endif // JOUEUR_H

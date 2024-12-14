@@ -1,4 +1,5 @@
 # depslib dependency file v1.0
+<<<<<<< HEAD
 1733666101 source:c:\users\jean-\desktop\group\hivegame\action.cpp
 	"Action.h"
 
@@ -12,6 +13,32 @@
 	<iostream>
 
 1734097937 c:\users\jean-\desktop\group\hivegame\insecte.h
+=======
+1733612192 source:c:\users\utcpret\desktop\hivegame\main.cpp
+	"GameMaster.h"
+
+1733686262 c:\users\utcpret\desktop\hivegame\gamemaster.h
+	<fstream>
+	"Joueur.h"
+	"Plateau.h"
+	"Action.h"
+	<iostream>
+	<memory>
+	<limits>
+	<deque>
+
+1733612192 c:\users\utcpret\desktop\hivegame\joueur.h
+	"Insecte.h"
+	<vector>
+	<cstdlib>
+	<ctime>
+	<random>
+	<stdexcept>
+	<map>
+	<limits>
+
+1733686105 c:\users\utcpret\desktop\hivegame\insecte.h
+>>>>>>> 9017339bbeb3560a4aeaf83ba10151379d2d21d7
 	"Hexagon.h"
 	"Action.h"
 	"Plateau.h"
@@ -24,6 +51,7 @@
 	<set>
 	<algorithm>
 
+<<<<<<< HEAD
 1733666101 c:\users\jean-\desktop\group\hivegame\hexagon.h
 	<iostream>
 	<vector>
@@ -104,6 +132,13 @@
 	"Action.h"
 
 1733913109 c:\users\sillu\hivegame\action.h
+=======
+1733612192 c:\users\utcpret\desktop\hivegame\hexagon.h
+	<iostream>
+	<vector>
+
+1733612192 c:\users\utcpret\desktop\hivegame\action.h
+>>>>>>> 9017339bbeb3560a4aeaf83ba10151379d2d21d7
 	"Insecte.h"
 	"Plateau.h"
 	"Joueur.h"
@@ -112,6 +147,7 @@
 	<memory>
 	<iostream>
 
+<<<<<<< HEAD
 1733913109 c:\users\sillu\hivegame\insecte.h
 	"Hexagon.h"
 	"Action.h"
@@ -195,5 +231,30 @@
 	"GameMaster.h"
 
 1733913109 source:c:\users\sillu\hivegame\plateau.cpp
+=======
+1733612192 c:\users\utcpret\desktop\hivegame\plateau.h
+	"Insecte.h"
+	"Hexagon.h"
+	<map>
+	<vector>
+	<limits>
+	<iostream>
+
+1733612192 source:c:\users\utcpret\desktop\hivegame\action.cpp
+	"Action.h"
+
+1733612192 source:c:\users\utcpret\desktop\hivegame\hexagon.cpp
+	"Hexagon.h"
+	<sstream>
+
+1733612192 source:c:\users\utcpret\desktop\hivegame\insecte.cpp
+	"Insecte.h"
+
+1733612192 source:c:\users\utcpret\desktop\hivegame\joueur.cpp
+	"Joueur.h"
+	<sstream>
+
+1733612192 source:c:\users\utcpret\desktop\hivegame\plateau.cpp
+>>>>>>> 9017339bbeb3560a4aeaf83ba10151379d2d21d7
 	"Plateau.h"
 
