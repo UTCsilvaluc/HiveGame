@@ -53,6 +53,7 @@ public:
     void setCoords(Hexagon newCoords){
         coords = newCoords;
     }
+    int getTypeId() const;
     Insecte* getDessus(){
         return dessus;
     }
@@ -302,7 +303,7 @@ void getLongueurChaine(Hexagon coords, std::map<Hexagon, Insecte*> p, std::set<H
 bool getChaineBrisee(Hexagon coords, std::map<Hexagon, Insecte*> p, std::set<Hexagon> &chemin);
 bool getGlissementPossible(const Insecte *i, const std::map<Hexagon, Insecte*> p, const Hexagon destination);
 Insecte* trouverReine(Joueur* joueur, const std::map<Hexagon, Insecte*>& plateau);
-Hexagon getInsectPosition(const std::map<Hexagon, Insecte*>& plateau, Insecte* insecte);
+int calculerNombreDeVoisins(const std::map<Hexagon, Insecte*>& plateau, const Hexagon& position);
 
 
 

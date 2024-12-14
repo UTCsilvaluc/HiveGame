@@ -27,6 +27,8 @@ void GameMaster::startGame() {
     if (choix == 1) {
         // Lancer une nouvelle partie
         std::unordered_map<std::string, double> poidsIA = {
+            {"distanceReineAdverse", 5},
+            {"distanceReineAllieeEngorge", 1},
             {"evaluerCohesion", 1},
             {"distanceMin", 10.0},
             {"evaluerAttaqueReineAdverse", 2.0},
@@ -60,7 +62,8 @@ void GameMaster::startGame() {
             joueur2 = new JoueurHumain(nom);  // Créer le joueur 2
         } else {
             joueur2 = (modeIA == 1) ? new JoueurIA("IA") :
-                      (modeIA == 2) ? new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA) : nullptr;
+                      (modeIA == 2) ? new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA) :
+                      (modeIA == 3) ? new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1) : nullptr;
         }
         creerDeckPourJoueurs();
     } else {
@@ -327,6 +330,8 @@ std::vector<Insecte*> GameMaster::creerDeck() {
 
 void GameMaster::startGameForIA() {
     std::unordered_map<std::string, double> poidsIA1 = {
+            {"distanceReineAdverse", 5},
+            {"distanceReineAllieeEngorge", 1},
             {"evaluerCohesion", 1},
             {"distanceMin", 10.0},
             {"evaluerAttaqueReineAdverse", 2.0},
@@ -342,6 +347,8 @@ void GameMaster::startGameForIA() {
     };
 
     std::unordered_map<std::string, double> poidsIA2 = {
+            {"distanceReineAdverse", 5},
+            {"distanceReineAllieeEngorge", 1},
             {"evaluerCohesion", 1},
             {"distanceMin", 10.0},
             {"evaluerAttaqueReineAdverse", 2.0},

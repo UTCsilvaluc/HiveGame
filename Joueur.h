@@ -10,6 +10,9 @@
 #include <map>
 #include <limits>
 #include <stack>
+#include <functional>    // std::hash
+#include <unordered_map> // std::unordered_map
+#include <array>
 
 int getInput(const std::string& prompt, int minValue, int maxValue, unsigned int tour);
 int getInput(const std::string& prompt, int minValue, int maxValue);
@@ -22,12 +25,6 @@ private:
     std::string nom;
     std::vector<Insecte*> deck;
 public:
-    void clearDeck(){
-        for (Insecte* insecte : deck) {
-            delete insecte; // Libère la mémoire occupée par l'objet pointé
-        }
-        deck.clear(); // Vide le contenu du vector
-    }
     Joueur(const std::string& nom) : nom(nom), deck(deckDeBase(this)) {}
     Joueur(std::string n, std::vector<Insecte*> d) {
         if (n.empty()) { throw std::invalid_argument("Le nom ne peut pas être vide."); }
@@ -41,7 +38,14 @@ public:
     Insecte* getQueenOnPlateau(const std::map<Hexagon, Insecte*>& plateau) const;
     int findInsectIndexInDeck(const std::vector<Insecte*>& deck, Insecte* insecte);
     Insecte* getReineAdverse(const std::map<Hexagon, Insecte*>& plateau) const;
+    void clearDeck(){
+        for (Insecte* insecte : deck) {
+            delete insecte; // Libère la mémoire occupée par l'objet pointé
+        }
+        deck.clear(); // Vide le contenu du vector
+    }
     void setName(std::string& name){nom = name;}
+
     int getQueenIndex() const;
     bool hasQueen() const;
     void afficherDeck() const;
@@ -323,6 +327,11 @@ public:
                            const std::map<Insecte*, std::vector<Hexagon>>& candidats,
                            const std::vector<Hexagon>& options);
 
+    void filtrerPlacements(std::vector<Hexagon>& positions,
+                                        const Insecte* reineAdverse,
+                                        const Insecte* reineAlliee,
+                                        const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
     // Réinitialise les attributs internes de la classe
     void reinitialiserAttributs();
 
@@ -330,8 +339,8 @@ public:
     void afficherCandidats() const;
 
     // Évalue la cohésion d'un emplacement avec les insectes alliés adjacents
-    double evaluerCohesion(const Joueur* joueur, const Hexagon& emplacement,
-                        const std::map<Hexagon, Insecte*>& plateauSimule) const;
+    double evaluerCohesion(const Joueur* joueur, Insecte* insecte, const Hexagon& emplacement,
+                                        const std::map<Hexagon, Insecte*>& plateauSimule) const;
 
     // Évalue un placement spécifique pour un insecte
     double evaluerPlacementAction(const Joueur* joueur, Insecte* insecte,
@@ -354,6 +363,11 @@ public:
                                        const Hexagon& anciennePos,
                                        const Hexagon& nouvelEmplacement,
                                        const std::map<Hexagon, Insecte*>& plateauSimule) const;
+
+    bool choisirCoupAleatoire(const Joueur* joueur,
+                                           const std::map<Hexagon, Insecte*>& plateauSimule,
+                                           const std::vector<Insecte*>& deck,
+                                           bool estPlacement);
 
     // Évalue un déplacement spécifique pour un insecte
     double evaluerDeplacementAction(const Joueur* joueur, Insecte* insecte,
@@ -392,15 +406,10 @@ public:
                                                    const std::map<Hexagon, Insecte*>& plateauSimule);
 
 
-    // Calcule le score moyen pour les placements
-    double calculerScoreMoyenDePlacement(const Joueur* joueur,
-                                         const std::map<Insecte*, std::vector<Hexagon>>& candidats,
-                                         const std::map<Hexagon, Insecte*>& plateauSimule) const;
-
-    // Calcule le score moyen pour les déplacements
-    double calculerScoreMoyenDeDeplacement(const Joueur* joueur,
+    double calculerScoreMoyen(const Joueur* joueur,
                                            const std::map<Insecte*, std::vector<Hexagon>>& candidats,
-                                           const std::map<Hexagon, Insecte*>& plateauSimule) const;
+                                           const std::map<Hexagon, Insecte*>& plateauSimule,
+                                           bool estPlacement) const;
 
     void mettreAJourCoordonneesInsectes(const std::map<Hexagon, Insecte*>& plateau) const;
 
@@ -419,103 +428,56 @@ public:
 
 };
 
-// On va créer une structure pour stocker l’information dans la table de transposition
 struct TranspositionEntry {
-    int profondeur;  // Profondeur à laquelle on a calculé ce score
-    int alpha;       // Valeur alpha à l'enregistrement
-    int beta;        // Valeur beta à l'enregistrement
-    int score;       // Score résultant
+    int score;
+    int profondeur;
+    enum Type { EXACT, LOWER, UPPER } type;
 };
 
-#include <functional>    // std::hash
-#include <unordered_map> // std::unordered_map
+// Supposons un nombre maximum de types d'insectes
+constexpr int nbTypesInsectes = 9; // Ajustez selon votre jeu (Reine=0, Fourmi=1, etc.)
+
+struct HexagonHash {
+    std::size_t operator()(const Hexagon& h) const {
+        // Un hash simple sur q et r
+        std::size_t seed = 0;
+        // Combinaison standard
+        seed ^= std::hash<int>()(h.getQ()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        seed ^= std::hash<int>()(h.getR()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+        return seed;
+    }
+};
+
+static std::unordered_map<Hexagon, std::array<size_t, nbTypesInsectes>, HexagonHash> zobristKeys;
+static std::mt19937_64 rng(std::random_device{}());
+
+size_t generateRandomKeyHash();
+
+// Fonction qui initialise une entrée Zobrist pour une case donnée si elle n'existe pas encore
+void ensureZobristKeysForHexHash(const Hexagon& h);
+
+size_t calculerZobristHashPlateau(const std::map<Hexagon, Insecte*>& plateau);
 
 struct GameState {
-    std::map<Hexagon, Insecte*> plateau;
+    size_t zobristHash;
     std::vector<Insecte*> deckMax;
     std::vector<Insecte*> deckMin;
-    int profondeur;
-    bool maximisateur;
-    int alpha;
-    int beta;
-    // ... d’autres infos si besoin
 };
 
-/*struct GameStateHash {
+struct GameStateHash {
     std::size_t operator()(const GameState& gs) const {
-        // Combinateur de hachage
-        // Il existe plusieurs façons de hacher, en voici une indicative
-        std::size_t seed = 0;
-        std::hash<std::string> hashString;
-        std::hash<int> hashInt;
-
-        // 1) Hachage du plateau
-        //    On itère sur tous les (Hexagon, Insecte*) occupés pour créer une "signature"
-        for (auto& [hex, insecte] : gs.plateau) {
-            // Combiner les coordonnées
-            seed ^= std::hash<int>()(hex.getQ()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-            seed ^= std::hash<int>()(hex.getR()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-            // Combiner une forme d’ID unique de l’insecte (ex: son nom, ou un ID int).
-            seed ^= hashString(insecte->getNom()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        }
-
-        // 2) Hachage du deck du maximisateur
-        for (Insecte* insecte : gs.deckMax) {
-            seed ^= hashString(insecte->getNom()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        }
-
-        // 3) Hachage du deck du minimisateur
-        for (Insecte* insecte : gs.deckMin) {
-            seed ^= hashString(insecte->getNom()) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        }
-
-        // 4) Hachage des paramètres minimax (profondeur, alpha, beta, etc.)
-        seed ^= hashInt(gs.profondeur) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        seed ^= hashInt(gs.alpha)      + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        seed ^= hashInt(gs.beta)       + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-        seed ^= std::hash<bool>()(gs.maximisateur) + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
-
-        return seed;
+        return gs.zobristHash;
     }
 };
 
 struct GameStateEqual {
     bool operator()(const GameState& a, const GameState& b) const {
-        // On vérifie l’égalité stricte
-        // (remplacez par votre propre critère si nécessaire)
-        if (a.profondeur != b.profondeur) return false;
-        if (a.maximisateur != b.maximisateur) return false;
-        if (a.alpha != b.alpha || a.beta != b.beta) return false;
-
-        if (a.plateau.size() != b.plateau.size()) return false;
-        for (auto& [hex, insectA] : a.plateau) {
-            auto it = b.plateau.find(hex);
-            if (it == b.plateau.end()) return false;
-            Insecte* insectB = it->second;
-            if (insectA->getNom() != insectB->getNom()) return false;
-        }
-
-        if (a.deckMax.size() != b.deckMax.size()) return false;
-        // Comparer les noms (ou ID) des insectes du deck
-        // Pour être plus robuste, on peut trier avant comparaison, ou compter par type d’insecte
-        for (size_t i = 0; i < a.deckMax.size(); ++i) {
-            if (a.deckMax[i]->getNom() != b.deckMax[i]->getNom()) {
-                return false;
-            }
-        }
-
-        if (a.deckMin.size() != b.deckMin.size()) return false;
-        for (size_t i = 0; i < a.deckMin.size(); ++i) {
-            if (a.deckMin[i]->getNom() != b.deckMin[i]->getNom()) {
-                return false;
-            }
-        }
-
-        return true;
+        return a.zobristHash == b.zobristHash;
     }
 };
 
-static std::unordered_map<GameState, int, GameStateHash, GameStateEqual> transpositionTable;
+
+static std::unordered_map<GameState, TranspositionEntry, GameStateHash, GameStateEqual> transpositionTable;
 
 
 
@@ -527,69 +489,8 @@ public:
             : JoueurIANiveau2(nom, plateauRef, tourRef, initialPoids), adversaire(adversaireRef) {}
 
     Joueur* adversaire; // Pointeur vers l'adversaire
-    // Transposition table globale ou membre de la classe JoueurIANiveau3
 
-
-   int getInputForAction() override {
-    reinitialiserAttributs();
-
-    int meilleurScore = -std::numeric_limits<int>::max();
-    std::pair<Insecte*, Hexagon> meilleurCoup{nullptr, Hexagon()};
-
-    // Créer des copies des decks pour éviter de modifier les originaux
-    std::vector<Insecte*> deckMax = copierDeck(this);
-    std::vector<Insecte*> deckMin = copierDeck(adversaire);
-    // Créer une copie locale du plateau à partir de getPlateau()
-    std::map<Hexagon, Insecte*> plateauLocal = getPlateau();
-
-
-    // Générer les coups possibles pour le joueur IA
-    auto coupsPossibles = genererCoups(getPlateau(), true, deckMax, deckMin);
-
-    // Si aucun coup possible, retour à une action par défaut
-    if (coupsPossibles.empty()) {
-        actionChoisie = AUCUN_ACTION;
-        return static_cast<int>(actionChoisie);
-    }
-
-    // Parcourir les coups possibles pour évaluer leur score
-    for (auto& [insecte, positions] : coupsPossibles) {
-        for (auto& position : positions) {
-            // Sauvegarder l'état initial pour annulation
-            Hexagon anciennePosition = insecte->getCoords();
-            bool estPlacement = this->estPlacement(getPlateau(), insecte);
-
-            // Simuler le coup sur une copie du plateau
-            auto plateauSimule = simulerCoup(plateauLocal, std::make_pair(insecte, position), deckMax, deckMin, true);
-
-            // Calculer le score en appelant minimax
-            int score = minimax(plateauSimule, 3, false, -std::numeric_limits<int>::max(),
-                                std::numeric_limits<int>::max(), deckMax, deckMin);
-
-            undoCoup(plateauLocal, insecte, anciennePosition, position, estPlacement, deckMax, deckMin, true);
-
-
-            // Mettre à jour le meilleur coup si le score est supérieur
-            if (score > meilleurScore) {
-                meilleurScore = score;
-                meilleurCoup = {insecte, position};
-            }
-        }
-    }
-
-    reinitialiserAttributs();
-
-    // Ajouter le meilleur coup aux candidats
-    candidats[meilleurCoup.first].push_back(meilleurCoup.second);
-
-    // Déterminer l'action choisie (placement ou déplacement)
-    bool placement = estPlacement(getPlateau(), meilleurCoup.first);
-    actionChoisie = placement ? PLACER : DEPLACER;
-
-    mettreAJourCoordonneesInsectes(getPlateau());
-
-    return static_cast<int>(actionChoisie);
-}
+   int getInputForAction() override;
 
 
     int getInputForDeckIndex() override {
@@ -647,21 +548,6 @@ private:
     void undoCoup(std::map<Hexagon, Insecte*>& plateau, Insecte* insecte, const Hexagon& anciennePosition, const Hexagon& nouvellePosition,
                 bool estPlacement, std::vector<Insecte*>& deckMax, std::vector<Insecte*>& deckMin, bool maximisateur);
 
-    // Nouvelle fonction : calculer un hash (Zobrist ou simplifié) pour l'état du jeu.
-    // L'idée est de transformer la configuration plateau+deckMax+deckMin en un size_t unique.
-    // Ici, on montre un hachage simplifié. Pour un hachage robuste, se renseigner sur le Zobrist hashing.
-    size_t computeGameStateHash(const std::map<Hexagon, Insecte*>& plateau,
-                                const std::vector<Insecte*>& deckMax,
-                                const std::vector<Insecte*>& deckMin,
-                                bool maximisateur,
-                                int profondeur,
-                                int alpha,
-                                int beta);
-
 };
-
-
-*/
-
 
 #endif // JOUEUR_H

@@ -88,6 +88,21 @@ void getLongueurChaine(Hexagon coords, std::map<Hexagon, Insecte*> p, std::set<H
     }
 }
 
+int Insecte::getTypeId() const {
+    // Selon le nom ou un attribut type
+    if (getNom() == "Reine") return 0;
+    if (getNom() == "Fourmi") return 1;
+    if (getNom() == "Scarabée") return 2;
+    if (getNom() == "Sauterelle") return 3;
+    if (getNom() == "Araignee") return 4;
+    if (getNom() == "Coccinelle") return 5;
+    if (getNom() == "Moustique") return 6;
+    if (getNom() == "Termite") return 7;
+    if (getNom() == "Papillon") return 8;
+    // Ajoutez d’autres si besoin
+    return -1; // Par défaut, erreur
+}
+
 bool getChaineBrisee(Hexagon coords, const std::map<Hexagon, Insecte*> p, std::set<Hexagon> &chemin) {
     std::map<Hexagon, Insecte*> p1 = p;
     if (p1.find(coords) != p1.end()) {
@@ -451,13 +466,15 @@ Action* Termite::actionDeplacer(Hexagon targetCoord) {
     // La Termite exécute une action spécifique : MangerPionAction
     return new MangerPionAction(this, this->getCoords(), targetCoord);
 }
-Hexagon getInsectPosition(const std::map<Hexagon, Insecte*>& plateau, Insecte* insecte) {
-    for (const auto& [pos, insect] : plateau) {
-        if (insect == insecte) {
-            return pos;
+int calculerNombreDeVoisins(const std::map<Hexagon, Insecte*>& plateau, const Hexagon& position) {
+    std::vector<Hexagon> voisins = getVoisins(position);
+    int count = 0;
+    for (const auto& v : voisins) {
+        if (plateau.find(v) != plateau.end() && plateau.at(v) != nullptr) {
+            count++;
         }
     }
-    throw std::runtime_error("getInsectPosition: Insecte introuvable sur le plateau !");
+    return count;
 }
 
 
