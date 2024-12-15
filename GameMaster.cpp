@@ -646,7 +646,6 @@ void GameMaster::jouer() {
                       << " tours pour jouer votre reine." << std::endl;
         }
 
-
         int choice = 0;
         bool needPlayQueen = (playerTurn >= 4) && current->hasQueen();
 

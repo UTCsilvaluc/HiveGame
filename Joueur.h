@@ -224,10 +224,6 @@ public:
     }
 };
 
-
-// Dans JoueurIANiveau2.h ou .cpp
-#include <unordered_map>
-
 // Clé qui représente l'état local d'une évaluation
 // (Insecte*, coordonnée, hash du plateau)
 struct HeuristicKey {
@@ -260,7 +256,7 @@ struct HeuristicKeyHash {
 };
 
 // Cache global ou membre de classe : stocke le résultat de l’heuristique
-static std::unordered_map<HeuristicKey, int, HeuristicKeyHash> heuristicsCache;
+static std::unordered_map<HeuristicKey, double, HeuristicKeyHash> heuristicsCache;
 
 
 
@@ -525,8 +521,7 @@ private:
     std::vector<Insecte*> copierDeck(const Joueur* joueur);
 
     std::map<Insecte*, std::vector<Hexagon>> genererCoups(const std::map<Hexagon, Insecte*>& plateau, bool estMaximisant,
-                                                            const std::vector<Insecte*>& deckMaximisateur,
-                                                            const std::vector<Insecte*>& deckMinimisateur);
+                                                            const std::vector<Insecte*>& deckMaximisateur, const std::vector<Insecte*>& deckMinimisateur);
 
     std::map<Insecte*, std::vector<Hexagon>> genererCoupsAdversaire(const std::map<Hexagon, Insecte*>& plateau,
                                                                     const std::vector<Insecte*>& deckMaximisateur,
@@ -534,10 +529,8 @@ private:
 
 
     std::map<Hexagon, Insecte*> simulerCoup(std::map<Hexagon, Insecte*>& plateau,
-                                            const std::pair<Insecte*, Hexagon>& coup,
-                                            std::vector<Insecte*>& deckMaximisateur,
-                                            std::vector<Insecte*>& deckMinimisateur,
-                                            bool estMaximisant);
+                                            const std::pair<Insecte*, Hexagon>& coup,std::vector<Insecte*>& deckMaximisateur,
+                                            std::vector<Insecte*>& deckMinimisateur,bool estMaximisant);
 
 
     bool estEncerclee(Insecte* reine, const std::map<Hexagon, Insecte*>& plateau) const;

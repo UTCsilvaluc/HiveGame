@@ -257,11 +257,6 @@ void JoueurIANiveau2::filtrerPlacements(std::vector<Hexagon>& positions,
 
 
 
-
-
-
-
-
 int JoueurIANiveau2::findIndexInOptions(const Joueur* joueur, Insecte* insecteChoisi, const std::map<Insecte*, std::vector<Hexagon>>& candidats, const std::vector<Hexagon>& options) {
     (void)joueur; // Si pas utilisé ici, on peut l'ignorer ou l'utiliser si besoin
     if (!insecteChoisi) {
@@ -328,7 +323,7 @@ double JoueurIANiveau2::evaluerCohesion(const Joueur* joueur, Insecte* insecte, 
     }
 
     // Mise en cache
-    heuristicsCache[key] = (int)score;
+    heuristicsCache[key] = score;
     return score;
 }
 
@@ -363,7 +358,7 @@ double JoueurIANiveau2::evaluerAttaqueReineAdverse(const Joueur* joueur, Insecte
         }
     }
 
-    heuristicsCache[key] = (int)score;
+    heuristicsCache[key] = score;
     return score;
 }
 
@@ -391,6 +386,12 @@ double JoueurIANiveau2::evaluerProtectionReine(const Joueur* joueur, Insecte* in
     Insecte* reineAllieeSimulee = joueur->getQueenOnPlateau(plateauModifie);
     if (!reineAllieeSimulee) return score;
 
+    bool deplacementReine = (insecte == reineAlliee);
+    if (deplacementReine) {
+        reineAllieeSimulee->setCoords(nouvelEmplacement);
+    }
+    insecte->setCoords(nouvelEmplacement);
+
     Hexagon posReineAllieeApres = reineAllieeSimulee->getCoords();
     std::vector<Hexagon> voisinsReineApres = getVoisins(posReineAllieeApres);
     std::vector<Hexagon> ennemisApres = reineAllieeSimulee->getVoisinsEnnemis(voisinsReineApres, plateauModifie);
@@ -400,7 +401,7 @@ double JoueurIANiveau2::evaluerProtectionReine(const Joueur* joueur, Insecte* in
 
     if (difference > 0) {
         double multiplicateur = (nbEnnemisAvant > 4) ? getPoids("multiDeRisqueSurReine") : 1.0;
-        double baseBonus = (insecte == reineAlliee)
+        double baseBonus = deplacementReine
             ? getPoids("bougerReine") * difference
             : getPoids("bougerInsectePourProtegerReine") * difference;
 
@@ -408,6 +409,8 @@ double JoueurIANiveau2::evaluerProtectionReine(const Joueur* joueur, Insecte* in
     } else if (difference < 0) {
         score -= getPoids("laisserReineSecurite") * (-difference);
     }
+
+    insecte->setCoords(ancienneEmplacement);
 
     return score;
 }
@@ -443,6 +446,7 @@ double JoueurIANiveau2::evaluerBlocageInsecteImportant(const Joueur* joueur, Ins
     std::map<Hexagon, Insecte*> plateauModifie = plateauSimule;
     plateauModifie.erase(anciennePos);
     plateauModifie[nouvelEmplacement] = insecte;
+    insecte->setCoords(nouvelEmplacement);
 
     double totalBonus = 0.0;
     for (Insecte* adv : insectesImportants) {
@@ -452,6 +456,7 @@ double JoueurIANiveau2::evaluerBlocageInsecteImportant(const Joueur* joueur, Ins
         }
     }
 
+    insecte->setCoords(anciennePos);
     return totalBonus;
 }
 
@@ -468,6 +473,7 @@ double JoueurIANiveau2::evaluerPlacementAction(const Joueur* joueur,
     if (it != heuristicsCache.end()) {
         return it->second;
     }
+    Hexagon anciennePos = insecte->getCoords();
 
     // Simuler l'ajout de l'insecte
     std::map<Hexagon, Insecte*> plateauCopie = plateauSimule;
@@ -489,7 +495,8 @@ double JoueurIANiveau2::evaluerPlacementAction(const Joueur* joueur,
         score += getPoids("potentielFuturPlacement") * potentielFutur;
     }
 
-    heuristicsCache[key] = (int)score;
+    insecte->setCoords(anciennePos);
+    heuristicsCache[key] = score;
     return score;
 }
 
@@ -507,12 +514,14 @@ double JoueurIANiveau2::evaluerDeplacementAction(const Joueur* joueur,
     }
 
     Hexagon anciennePos = insecte->getCoords();
+    insecte->setCoords(nouvelEmplacement);
     double scoreTotal = 0.0;
     scoreTotal += evaluerAttaqueReineAdverse(joueur, insecte, nouvelEmplacement, plateauSimule);
     scoreTotal += evaluerProtectionReine(joueur, insecte, anciennePos, nouvelEmplacement, plateauSimule);
     scoreTotal += evaluerBlocageInsecteImportant(joueur, insecte, anciennePos, nouvelEmplacement, plateauSimule);
 
-    heuristicsCache[key] = (int)scoreTotal;
+    insecte->setCoords(anciennePos);
+    heuristicsCache[key] = scoreTotal;
     return scoreTotal;
 }
 
@@ -941,7 +950,7 @@ int JoueurIANiveau3::getInputForAction(){
             auto plateauSimule = simulerCoup(plateauLocal, std::make_pair(insecte, position), deckMax, deckMin, true);
 
             // Calculer le score en appelant minimax
-            int score = minimax(plateauSimule, 3, false, -std::numeric_limits<int>::max(),
+            int score = minimax(plateauSimule, 10, false, -std::numeric_limits<int>::max(),
                                 std::numeric_limits<int>::max(), deckMax, deckMin);
 
             undoCoup(plateauLocal, insecte, anciennePosition, position, estPlacement, deckMax, deckMin, true);

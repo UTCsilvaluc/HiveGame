@@ -86,7 +86,7 @@
 	<limits>
 	<iostream>
 
-1734215022 c:\users\jean-\desktop\group\hivegame\joueur.h
+1734283352 c:\users\jean-\desktop\group\hivegame\joueur.h
 	"Insecte.h"
 	<vector>
 	<cstdlib>
@@ -99,9 +99,8 @@
 	<functional>
 	<unordered_map>
 	<array>
-	<unordered_map>
 
-1734214641 source:c:\users\jean-\desktop\group\hivegame\gamemaster.cpp
+1734283352 source:c:\users\jean-\desktop\group\hivegame\gamemaster.cpp
 	<dirent.h>
 	<iostream>
 	"Insecte.h"
@@ -134,7 +133,7 @@
 1734215022 source:c:\users\jean-\desktop\group\hivegame\insecte.cpp
 	"Insecte.h"
 
-1734214848 source:c:\users\jean-\desktop\group\hivegame\joueur.cpp
+1734283434 source:c:\users\jean-\desktop\group\hivegame\joueur.cpp
 	"Joueur.h"
 	<sstream>
 
