@@ -404,7 +404,7 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
 
     // Variables pour afficher les valeurs spécifiques
     int mode = -1;
-    int tour = -1;
+    unsigned int tour = -1;
     int maxRetourArriere = -1;
     int modeIA = -1;
 
@@ -462,9 +462,9 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
     } else if (modeIA == 1) {
         joueur2 = new JoueurIA("IA");
     }else if (modeIA == 2){
-        //Joueur* joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
+        Joueur* joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
     }else if(modeIA == 3){
-        //joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
+        Joueur* joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
     }
     // Affiche les contenus des blocs détectés
     for (const auto& [bloc, contenu] : listeContent) {

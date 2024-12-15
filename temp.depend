@@ -148,7 +148,14 @@
 1733913109 source:c:\users\sillu\hivegame\action.cpp
 	"Action.h"
 
-1733913109 c:\users\sillu\hivegame\action.h
+1734278794 c:\users\sillu\hivegame\action.h
+	"Insecte.h"
+	"Plateau.h"
+	"Joueur.h"
+	<functional>
+	<unordered_map>
+	<memory>
+	<iostream>
 
 1733612192 c:\users\utcpret\desktop\hivegame\hexagon.h
 	<iostream>
@@ -156,7 +163,7 @@
 
 1733612192 c:\users\utcpret\desktop\hivegame\action.h
 
-1733913109 c:\users\sillu\hivegame\insecte.h
+1734278794 c:\users\sillu\hivegame\insecte.h
 	"Hexagon.h"
 	"Action.h"
 	"Plateau.h"
@@ -173,7 +180,7 @@
 	<iostream>
 	<vector>
 
-1733913109 c:\users\sillu\hivegame\plateau.h
+1734201035 c:\users\sillu\hivegame\plateau.h
 	"Insecte.h"
 	"Hexagon.h"
 	<map>
@@ -181,7 +188,7 @@
 	<limits>
 	<iostream>
 
-1733913109 c:\users\sillu\hivegame\joueur.h
+1734278794 c:\users\sillu\hivegame\joueur.h
 	"Insecte.h"
 	<vector>
 	<cstdlib>
@@ -190,31 +197,29 @@
 	<stdexcept>
 	<map>
 	<limits>
+	<stack>
+	<functional>
+	<unordered_map>
+	<array>
+	<unordered_map>
 
-1733913259 source:c:\users\sillu\hivegame\gamemaster.cpp
-	"GameMaster.h"
-	<fstream>
+1734278794 source:c:\users\sillu\hivegame\gamemaster.cpp
+	<dirent.h>
 	<iostream>
+	"Insecte.h"
+	<regex>
+	<fstream>
 	<sstream>
 	<string>
 	"GameMaster.h"
-	"Insecte.h"
-	<fstream>
-	<iostream>
-	<sstream>
-	<string>
-	"GameMaster.h"
-	"Insecte.h"
+	<unordered_map>
+	<vector>
 	<fstream>
 	<sstream>
 	<fstream>
 	<sstream>
-	<fstream>
-	<sstream>
-	<iostream>
-	<stdexcept>
 
-1733913109 c:\users\sillu\hivegame\gamemaster.h
+1734203330 c:\users\sillu\hivegame\gamemaster.h
 	<fstream>
 	"Joueur.h"
 	"Plateau.h"
@@ -224,21 +229,23 @@
 	<limits>
 	<deque>
 
-1733913109 source:c:\users\sillu\hivegame\hexagon.cpp
+1734190649 source:c:\users\sillu\hivegame\hexagon.cpp
 	"Hexagon.h"
 	<sstream>
 
-1733913217 source:c:\users\sillu\hivegame\insecte.cpp
+1734278794 source:c:\users\sillu\hivegame\insecte.cpp
 	"Insecte.h"
 
-1733913275 source:c:\users\sillu\hivegame\joueur.cpp
+1734278794 source:c:\users\sillu\hivegame\joueur.cpp
 	"Joueur.h"
 	<sstream>
 
 1733913110 source:c:\users\sillu\hivegame\main.cpp
 	"GameMaster.h"
 
-1733913109 source:c:\users\sillu\hivegame\plateau.cpp
+1734192196 source:c:\users\sillu\hivegame\plateau.cpp
+	"Plateau.h"
+	<iomanip>
 
 1733612192 c:\users\utcpret\desktop\hivegame\plateau.h
 	"Insecte.h"
