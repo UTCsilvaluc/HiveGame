@@ -9,7 +9,7 @@ std::vector<Insecte*> deckDeBase(Joueur *joueur){
     newDeck.push_back(new Coccinelle(Hexagon(0, 0) , joueur));  // Coccinelle x1
     newDeck.push_back(new Moustique(Hexagon(0, 0) , joueur));   // Moustique x1
     newDeck.push_back(new ReineAbeille(Hexagon(0, 0) , joueur));  // Reine Abeille x1
-    newDeck.push_back(new Termite(Hexagon(0, 0) , joueur));  // Reine Abeille x1
+    //newDeck.push_back(new Termite(Hexagon(0, 0) , joueur));  // Reine Abeille x1
     return newDeck;
 }
 void Joueur::afficherDeck() const {

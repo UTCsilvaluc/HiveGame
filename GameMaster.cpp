@@ -632,10 +632,11 @@ void GameMaster::deplacerPion(Joueur* current) {
 void GameMaster::jouer() {
     plateau.afficherPlateau(joueur1 , joueur2);
     bool hasWinner = false;
+    hasWinner = detectWinner(joueur1, joueur2);
     while (!hasWinner) {
         Joueur* current = (tour % 2 == 0) ? joueur1 : joueur2;
         int playerTurn = (tour / 2) + 1; // Tour sp�cifique au joueur
-        hasWinner = detectWinner(joueur1, joueur2);
+
 
         std::cout << "\nC'est au tour de : " << current->getName() << std::endl;
 
