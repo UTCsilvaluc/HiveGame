@@ -38,6 +38,7 @@ public:
     Insecte* getQueenOnPlateau(const std::map<Hexagon, Insecte*>& plateau) const;
     int findInsectIndexInDeck(const std::vector<Insecte*>& deck, Insecte* insecte);
     Insecte* getReineAdverse(const std::map<Hexagon, Insecte*>& plateau) const;
+    virtual void setAdversaire(Joueur* joueur){}
     void clearDeck(){
         for (Insecte* insecte : deck) {
             delete insecte; // Libère la mémoire occupée par l'objet pointé
@@ -93,7 +94,7 @@ class JoueurHumain : public Joueur{
 public:
     JoueurHumain(const std::string& nom) : Joueur(nom) {}
 
-    int getInputForAction() {
+    int getInputForAction() override {
         int choice = 0;
         while (true) {
             std::cout << "Que voulez-vous faire ?\n"
@@ -113,26 +114,26 @@ public:
         return choice;
     }
 
-    Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour){
+    Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) override{
         std::cout << "Le plateau est vide, vous devez entrer les coordonnées directement.\n";
         int x = getInput("Abscisse pour poser le pion : ", minQ - 1, maxQ + 1 , tour);
         int y = getInput("Ordonnée pour poser le pion : ", minR - 1, maxR + 1 , tour);
         return Hexagon(x,y);
     }
 
-    int getInputForDeckIndex(){
+    int getInputForDeckIndex()override{
         return getInput("Quel pion souhaitez-vous poser ? ", 1, getDeckSize()) - 1;
     }
 
-    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles){
+    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles) override{
         return getInput("Choisissez un emplacement ou entrez -1 pour annuler : ", -1, placementsPossibles.size());
     }
 
-    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur){
+    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) override{
         return getInput("Entrez l'index de l'insecte à sélectionner (ou -1 pour annuler) : ", -1, insectesDuJoueur.size() - 1);
     }
 
-    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles){
+    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles)override{
         return getInput("Choisissez un emplacement ou entrez -1 pour annuler : ", -1, deplacementsPossibles.size());
     }
 
@@ -154,28 +155,28 @@ public:
         generator = std::default_random_engine(rd());
     }
 
-    int getInputForAction() {
+    int getInputForAction() override{
         return randomChoice();
     }
 
-    Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour){
+    Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) override{
         // À implémenter si on veut faire commencer IA ou faire jouer IA contre IA
         return Hexagon(0,0);
     }
 
-    int getInputForDeckIndex() {
+    int getInputForDeckIndex() override{
         return randomDeckChoice();
     }
 
-    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles) {
+    int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles) override{
         return randomHexagonIndexChoice(placementsPossibles);
     }
 
-    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) {
+    int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) override{
         return randomPionIndexChoice(insectesDuJoueur);
     }
 
-    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) {
+    int getInputForMovementIndex(std::vector<Hexagon> deplacementsPossibles) override{
         return randomHexagonIndexChoice(deplacementsPossibles);
     }
 
@@ -417,6 +418,9 @@ public:
 
     // Implémentations des fonctions virtuelles
     int getInputForAction() override;
+    Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) override{
+        return Hexagon(0,0);
+    }
     int getInputForDeckIndex() override;
     int getInputForPlacementIndex(std::vector<Hexagon> placementsPossibles) override;
     int getInputIndexForInsectToMove(std::vector<Insecte*> insectesDuJoueur) override;
@@ -486,8 +490,15 @@ public:
 
     Joueur* adversaire; // Pointeur vers l'adversaire
 
-   int getInputForAction() override;
+    void setAdversaire(Joueur* adv) {
+        adversaire = adv;
+    }
 
+    int getInputForAction() override;
+
+    Hexagon getFirstPlacementCoordinates(int minQ, int maxQ, int minR, int maxR, unsigned int tour) override{
+        return Hexagon(0,0);
+    }
 
     int getInputForDeckIndex() override {
         return JoueurIANiveau2::getInputForDeckIndex();

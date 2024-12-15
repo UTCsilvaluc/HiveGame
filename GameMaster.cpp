@@ -365,6 +365,7 @@ void GameMaster::startGameForIA() {
 
     joueur1 = new JoueurIANiveau2("IA1", &plateau.getPlateauMap(), &tour, poidsIA1);  // Cr�er le joueur 1
     joueur2 = new JoueurIANiveau2("IA2", &plateau.getPlateauMap(), &tour, poidsIA2);
+    //joueur1->setAdversaire(joueur2);
     jouer();
 }
 
