@@ -374,6 +374,7 @@ void GameMaster::startGameForIA() {
 std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::string& cheminFichier) {
     InsecteFactoryImpl factory;
     std::map<Hexagon, Insecte*> pMap;
+    std::map<std::string, Insecte*> mapID_Insecte;
     std::unordered_map<std::string, double> poidsIA = {
             {"evaluerCohesion", 1},
             {"distanceMin", 10.0},
@@ -389,7 +390,7 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
             {"bonusBlocage", 7.0}
     };
     // Mots-clés pour détecter le début des blocs
-    std::vector<std::string> debutBlocs = {"plateauMap", "joueur1", "joueur2"};
+    std::vector<std::string> debutBlocs = {"plateauMap", "joueur1", "joueur2" , "insectesSurPlateau"};
     std::unordered_map<std::string, Joueur*> joueurs;
     std::ifstream fichier(cheminFichier); // Ouvre le fichier
     if (!fichier.is_open()) {
@@ -508,6 +509,7 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
 
         // Traitement spécifique pour "plateauMap"
         if (bloc == "plateauMap") {
+            std::cout << bloc;
             // Séparer chaque ligne en utilisant le délimiteur ":"
             std::istringstream stream(contenu); // Utiliser un flux pour lire ligne par ligne
             std::string ligne;
@@ -557,6 +559,74 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
                 }
             }
         }
+        if (bloc == "insectesSurPlateau") {
+            std::cout << "Traitement du bloc: " << bloc << std::endl;
+
+            // Flux pour parcourir le contenu du bloc
+            std::istringstream stream(contenu);
+            std::string ligne;
+
+            // Parcourir chaque ligne du bloc
+            while (std::getline(stream, ligne)) {
+                std::vector<std::string> elementsEmpiles;
+                std::istringstream ligneStream(ligne);
+                std::string element;
+
+                // Découper chaque ligne en utilisant ';' comme séparateur
+                while (std::getline(ligneStream, element, ';')) {
+                    // Nettoyer les espaces autour de chaque élément
+                    element = std::regex_replace(element, std::regex("^\\s+|\\s+$"), "");
+                    elementsEmpiles.push_back(element);
+                }
+
+                // Vérifier que les informations minimales sont présentes
+                if (elementsEmpiles.size() >= 4) {
+                    // Extraire les données nécessaires
+                    std::string id = elementsEmpiles[0];
+                    std::string type = elementsEmpiles[1];
+                    std::string coords = elementsEmpiles[2];
+                    std::string proprietaire = elementsEmpiles[3];
+                    std::string dessus = elementsEmpiles[4];
+                    std::string dessous = elementsEmpiles[5];
+
+                    // Extraire les coordonnées Q et R à partir du format "[q,r]"
+                    std::regex rgx("\\[(-?\\d+),(-?\\d+)\\]");
+                    std::smatch matches;
+                    int q = 0, r = 0;
+                    if (std::regex_match(coords, matches, rgx)) {
+                        q = std::stoi(matches[1].str());
+                        r = std::stoi(matches[2].str());
+                    } else {
+                        std::cerr << "Erreur: Coordonnées mal formatées pour l'insecte " << id << std::endl;
+                        continue;
+                    }
+                    if (joueurs.find(proprietaire) == joueurs.end()) {
+                        if (joueurs.size() == 0) {
+                            joueurs[proprietaire] = joueur1;
+                            joueur1->setName(proprietaire);
+                        } else {
+                            joueurs[proprietaire] = joueur2;
+                            joueur2->setName(proprietaire);
+                        }
+                    }
+                    Insecte* insecte = pMap[Hexagon(q,r)];
+                    // Créer l'insecte et l'ajouter au plateau
+                    if (insecte == nullptr){
+                        Insecte* insecte = factory.createInsecte(type, Hexagon(q, r), joueurs[proprietaire]);
+                        std::cout << "Insecte créé : " << std::endl;
+                        std::cout << "  ID: " << id << std::endl;
+                        std::cout << "  Type: " << type << std::endl;
+                        std::cout << "  Coordonnées: [" << q << ", " << r << "]" << std::endl;
+                        std::cout << "  Propriétaire: " << proprietaire << std::endl;
+                    }
+                    mapID_Insecte[id] = insecte;
+                    // reste à ajoiter dessus / dessous
+                } else {
+                    std::cerr << "Erreur: Ligne mal formatée dans 'insectesSurPlateau': " << ligne << std::endl;
+                }
+            }
+        }
+
     }
     return pMap;
 }
@@ -638,9 +708,7 @@ void GameMaster::jouer() {
         Joueur* current = (tour % 2 == 0) ? joueur1 : joueur2;
         int playerTurn = (tour / 2) + 1; // Tour sp�cifique au joueur
 
-
         std::cout << "\nC'est au tour de : " << current->getName() << std::endl;
-
         if (current->hasQueen()) {
             int remainingTurnsToPlayQueen = 4 - playerTurn;
             std::cout << "Il vous reste " << remainingTurnsToPlayQueen
@@ -650,17 +718,30 @@ void GameMaster::jouer() {
         int choice = 0;
         bool needPlayQueen = (playerTurn >= 4) && current->hasQueen();
 
-        if (needPlayQueen) {
-            std::cout << "Vous devez obligatoirement poser votre Reine !\n";
-            choice = 2; // Forcer le choix de poser la reine
-        } else {
-            if (!plateau.playerCanMoveInsecte(current)) {
-                std::cout << "Aucun mouvement possible, vous devez placer un pion.\n";
-                choice = 2;
+        choice = current->getInputForAction();
+        if (choice == 3){
+            if (actionsDeque.size() >= 2) {
+                    undoLastTwoActions();
+                    break;
             } else {
+                std::cout << "Aucune action � annuler, essayez une autre option.\n";
                 choice = current->getInputForAction();
+                continue;
+            }
+        } else {
+            if (needPlayQueen) {
+                std::cout << "Vous devez obligatoirement poser votre Reine !\n";
+                choice = 2; // Forcer le choix de poser la reine
+            } else {
+                if (!plateau.playerCanMoveInsecte(current) && current->getDeckSize() > 0) {
+                    std::cout << "Aucun mouvement possible, vous devez placer un pion.\n";
+                    choice = 2;
+                } else {
+                    choice = current->getInputForAction();
+                }
             }
         }
+        if (current->getDeckSize() == 0 && choice != 3) choice = 1;
         while (true) {
             if (choice == 3) {
                 if (actionsDeque.size() >= 2) {
@@ -692,12 +773,10 @@ void GameMaster::jouer() {
 void GameMaster::placerPion(Joueur* current, bool needPlayQueen) {
     Insecte* insecteAPlacer = nullptr;
     int index = 0;
-
     // S�lection du pion � placer
     while (insecteAPlacer == nullptr){
         if (current->getDeckSize()==0) break;
         if (!needPlayQueen) {
-            std::cout << "\nVoici votre deck : " << std::endl;
             current->afficherDeck();
             index = current->getInputForDeckIndex();
             insecteAPlacer = current->getInsecteByIndex(index);
@@ -718,12 +797,9 @@ void GameMaster::placerPion(Joueur* current, bool needPlayQueen) {
         }
         else{
             std::vector<Hexagon> placementsPossibles = plateau.getPlacementsPossibles(insecteAPlacer);
-
             plateau.afficherPlateauAvecPossibilites(placementsPossibles, joueur1, joueur2, current);
-            plateau.afficherPossibilitesPlacements(insecteAPlacer, placementsPossibles);
-
+            plateau.afficherPossibilitesPlacements(insecteAPlacer, placementsPossibles);;
             int choix = current->getInputForPlacementIndex(placementsPossibles);
-
             if (choix == -1) {
                 std::cout << "Placement annulé.\n";
                 tour--;
@@ -738,7 +814,7 @@ void GameMaster::placerPion(Joueur* current, bool needPlayQueen) {
 
     }
     Action* action = insecteAPlacer->actionPlacer(position);
-    action->executerAction(plateau); // `plateau` est l'instance de Plateau utilisée dans votre jeu
+    action->executerAction(plateau);
     current->retirerInsecte(index);
     Insecte* insecteEnDessous = plateau.getInsecteAt(position);
     if (actionsDeque.size() >= maxRetourArriere) {
@@ -887,7 +963,7 @@ std::string GameMaster::toJson() const {
     jsonData << "  \"tour\": " << tour << ",\n";
 
     // Max retours arrière
-    jsonData << "  \"maxRetourArriere\": " << maxRetourArriere << "\n";
+    jsonData << "  \"maxRetourArriere\": " << maxRetourArriere << ",\n";
     jsonData << "  \"modeIA\": " << modeIA << "\n";
 
     jsonData << "}";

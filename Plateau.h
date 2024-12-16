@@ -17,6 +17,7 @@ class Joueur;
 class Plateau {
 private:
     std::map<Hexagon, Insecte*> plateauMap;
+    std::vector<Insecte*> insectesSurPlateau;
     int nombreRetoursArriere;
     int minR, maxR, minQ, maxQ;
 
@@ -26,6 +27,15 @@ public:
     void afficherPlateauAvecPossibilites(const std::vector<Hexagon>& emplacementsPossibles, Joueur* j1, Joueur* j2, Joueur* current);
     void afficherPossibilitesDeplacements(const Insecte* insecte, const std::vector<Hexagon> deplacementsPossibles) const;
     void afficherPossibilitesPlacements(const Insecte* insecte, const std::vector<Hexagon> placementsPossibles) const;
+    void addInsectePlateau(Insecte *insecte){insectesSurPlateau.push_back(insecte);}
+    void removeInsectePlateau(Insecte* insecte) {
+        for (auto it = insectesSurPlateau.begin(); it != insectesSurPlateau.end(); ++it) {
+            if (*it == insecte) {
+                insectesSurPlateau.erase(it);
+                break;
+                }
+            }
+    }
     std::vector<Hexagon> getPlacementsPossibles(Insecte* insecte);
     void mettreAJourLimites() {
         // Initialiser les limites � des valeurs extr�mes

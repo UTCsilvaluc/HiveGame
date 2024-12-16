@@ -1,6 +1,6 @@
 #include "Insecte.h"
 Action* Insecte::actionPlacer(Hexagon targetCoord) {
-    return new PlacementAction(this, targetCoord, this->owner); // Remplacez `actionPlacer` par `PlacementAction`
+    return new PlacementAction(this, targetCoord, this->owner);
 }
 
 Action* Insecte::actionDeplacer(Hexagon targetCoord) {

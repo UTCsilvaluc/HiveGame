@@ -14,7 +14,7 @@ void PlacementAction::undo(Plateau& plateau) {
     }
 
     plateau.supprimerInsectePlateauCoords(position);
-
+    plateau.removeInsectePlateau(insecte);
     if (joueur) {
         joueur->ajouterInsecte(insecte);
     }

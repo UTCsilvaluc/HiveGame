@@ -1,0 +1,63 @@
+{
+  "plateau": {
+  "plateauMap": {
+    "[-4,-2]": 0x1587620;Sauterelle;[-4,-2];IA2;null;null,
+    "[-3,-2]": 0x1413120;Araignée;[-3,-2];IA2;null;null,
+    "[-3,-1]": 0x1587e70;Moustique;[-3,-1];IA2;null;null,
+    "[-2,-2]": 0x1587c40;Reine;[-2,-2];IA2;null;null,
+    "[-2,-1]": 0x1587af0;Fourmi;[-2,-1];IA2;null;null,
+    "[-2,0]": 0x1587460;Fourmi;[-2,0];IA2;null;null,
+    "[-1,-5]": 0x1413040;Araignée;[-1,-5];IA1;null;null,
+    "[-1,-4]": 0x1412e10;Sauterelle;[-1,-4];IA1;null;null,
+    "[-1,-3]": 0x1412be0;Scarabee;[-1,-3];IA1;null;null,
+    "[-1,0]": 0x1587bd0;Fourmi;[-1,0];IA2;null;null,
+    "[0,-4]": 0x1412da0;Sauterelle;[0,-4];IA1;null;null,
+    "[0,-3]": 0x14130b0;Coccinelle;[0,-3];IA1;null;null,
+    "[0,-2]": 0x1412d30;Fourmi;[0,-2];IA1;null;null,
+    "[0,-1]": 0x1412cc0;Fourmi;[0,-1];IA1;null;null,
+    "[0,0]": 0x1412fd0;Sauterelle;[0,0];IA1;null;null,
+    "[1,-2]": 0x1412e80;Reine;[1,-2];IA1;null;null,
+    "[1,-1]": 0x1412ef0;Moustique;[1,-1];IA1;null;null,
+    "[1,0]": 0x1412c50;Fourmi;[1,0];IA1;null;null,
+    "[2,-2]": 0x1587230;Coccinelle;[2,-2];IA2;null;null
+  },
+  "insectesSurPlateau": {
+0x1412fd0;Sauterelle;[0,0];IA1;null;null,
+0x1587bd0;Fourmi;[-1,0];IA2;null;null,
+0x1412c50;Fourmi;[1,0];IA1;null;null,
+0x1587460;Fourmi;[-2,0];IA2;null;null,
+0x1412cc0;Fourmi;[0,-1];IA1;null;null,
+0x1587af0;Fourmi;[-2,-1];IA2;null;null,
+0x1412e80;Reine;[1,-2];IA1;null;null,
+0x1587c40;Reine;[-2,-2];IA2;null;null,
+0x1412ef0;Moustique;[1,-1];IA1;null;null,
+0x1587e70;Moustique;[-3,-1];IA2;null;null,
+0x1412d30;Fourmi;[0,-2];IA1;null;null,
+0x1413120;Araignée;[-3,-2];IA2;null;null,
+0x14130b0;Coccinelle;[0,-3];IA1;null;null,
+0x1587230;Coccinelle;[2,-2];IA2;null;null,
+0x1412be0;Scarabee;[-1,-3];IA1;null;null,
+0x1587620;Sauterelle;[-4,-2];IA2;null;null,
+0x1412da0;Sauterelle;[0,-4];IA1;null;null,
+0x1412e10;Sauterelle;[-1,-4];IA1;null;null,
+0x1413040;Araignée;[-1,-5];IA1;null;null
+  },
+  "nombreRetoursArriere": 3,
+  "minR": -5,
+  "maxR": 0,
+  "minQ": -4,
+  "maxQ": 2
+},
+  "joueur1": {
+  "nom": "IA1",
+  "deck": [0x14132e0;Araignée;[0,0];IA1;null;null, 0x1413270;Scarabee;[0,0];IA1;null;null]
+},
+  "joueur2": {
+  "nom": "IA2",
+  "deck": [0x1413190;Araignée;[0,0];IA2;null;null, 0x1412f60;Scarabee;[0,0];IA2;null;null, 0x1587e00;Scarabee;[0,0];IA2;null;null, 0x15878c0;Sauterelle;[0,0];IA2;null;null, 0x1587d90;Sauterelle;[0,0];IA2;null;null]
+},
+  "mode": 0,
+  "tour": 21,
+  "maxRetourArriere": 5,
+  "modeIA": 52897576
+}

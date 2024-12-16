@@ -1,7 +1,6 @@
 #include "Plateau.h"
 #include <iomanip>
 void Plateau::ajouterInsecte(Insecte* insecte, Hexagon position) {
-
     if (plateauMap.count(position)) {
         Insecte* insecteEnDessous = plateauMap[position];
         superposerInsecte(insecteEnDessous, insecte);
@@ -12,6 +11,7 @@ void Plateau::ajouterInsecte(Insecte* insecte, Hexagon position) {
         mettreAJourLimites();
         std::cout << "Pion place avec succes en " << position << "." << std::endl;
     }
+    addInsectePlateau(insecte);
 }
 
 void Plateau::deplacerInsecte(Insecte* insecte, const Hexagon& nouvellePosition) {
@@ -255,6 +255,7 @@ std::string escapeJson(const std::string& input) {
 
 std::string Plateau::toJson() const {
     std::stringstream jsonData;
+
     jsonData << "{\n";
 
     // plateauMap
@@ -271,6 +272,7 @@ std::string Plateau::toJson() const {
                  << (it.second ? it.second->toJson() : "null");
     }
     jsonData << "\n  },\n";
+
     // nombreRetoursArriere
     jsonData << "  \"nombreRetoursArriere\": " << nombreRetoursArriere << ",\n";
 

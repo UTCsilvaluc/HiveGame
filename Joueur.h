@@ -46,7 +46,6 @@ public:
         deck.clear(); // Vide le contenu du vector
     }
     void setName(std::string& name){nom = name;}
-
     int getQueenIndex() const;
     bool hasQueen() const;
     void afficherDeck() const;

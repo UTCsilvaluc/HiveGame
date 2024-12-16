@@ -239,7 +239,7 @@
 1733913109 source:c:\users\sillu\hivegame\action.cpp
 	"Action.h"
 
-1733913109 c:\users\sillu\hivegame\action.h
+1734278794 c:\users\sillu\hivegame\action.h
 	"Insecte.h"
 	"Plateau.h"
 	"Joueur.h"
@@ -248,7 +248,7 @@
 	<memory>
 	<iostream>
 
-1734202972 c:\users\sillu\hivegame\insecte.h
+1734356958 c:\users\sillu\hivegame\insecte.h
 	"Hexagon.h"
 	"Action.h"
 	"Plateau.h"
@@ -273,7 +273,7 @@
 	<limits>
 	<iostream>
 
-1734202665 c:\users\sillu\hivegame\joueur.h
+1734357336 c:\users\sillu\hivegame\joueur.h
 	"Insecte.h"
 	<vector>
 	<cstdlib>
@@ -283,22 +283,22 @@
 	<map>
 	<limits>
 	<stack>
-	<unordered_map>
 	<functional>
 	<unordered_map>
+	<array>
 
 1734190649 source:c:\users\sillu\hivegame\hexagon.cpp
 	"Hexagon.h"
 	<sstream>
 
-1734191780 source:c:\users\sillu\hivegame\insecte.cpp
+1734278794 source:c:\users\sillu\hivegame\insecte.cpp
 	"Insecte.h"
 
-1734192367 source:c:\users\sillu\hivegame\joueur.cpp
+1734356960 source:c:\users\sillu\hivegame\joueur.cpp
 	"Joueur.h"
 	<sstream>
 
-1733913110 source:c:\users\sillu\hivegame\main.cpp
+1734356960 source:c:\users\sillu\hivegame\main.cpp
 	"GameMaster.h"
 
 1734203330 c:\users\sillu\hivegame\gamemaster.h
@@ -315,7 +315,7 @@
 	"Plateau.h"
 	<iomanip>
 
-1734205265 source:c:\users\sillu\hivegame\gamemaster.cpp
+1734358789 source:c:\users\sillu\hivegame\gamemaster.cpp
 	<dirent.h>
 	<iostream>
 	"Insecte.h"
@@ -330,8 +330,4 @@
 	<sstream>
 	<fstream>
 	<sstream>
-	<fstream>
-	<sstream>
-	<iostream>
-	<stdexcept>
 
