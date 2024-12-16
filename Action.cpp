@@ -23,12 +23,39 @@ void PlacementAction::undo(Plateau& plateau) {
         insectBelow->setDessus(nullptr);
     }
 }
-
 std::string PlacementAction::toJson() const {
-    return "{\"type\": \"PlacementAction\", \"position\": " + position.toJson() + "}";
+    std::stringstream jsonData;
+    jsonData << "\"PlacementAction\";";
+    jsonData << position.toJson() << ";";
+    jsonData << (joueur ? joueur->getName() : "null") << ";";
+    jsonData << "("<< (insecte ? insecte->toJson() : "null")<< ");";
+    jsonData << "("<< (insectBelow ? insectBelow->toJson() : "null")<< ")";
+    return jsonData.str();
+}
+std::string DeplacementAction::toJson() const {
+    std::stringstream jsonData;
+    jsonData << "\"DeplacementAction\";";
+    jsonData << "("<< (insecte ? insecte->toJson() : "null") << ");";
+    jsonData << "(" << (insectBelow ? insectBelow->toJson() : "null")<< ");";
+    jsonData << oldPosition.toJson() << ";";
+    jsonData << newPosition.toJson();
+    return jsonData.str();
+}
+
+std::string MangerPionAction::toJson() const {
+    std::stringstream jsonData;
+    jsonData << "\"MangerPionAction\";";
+    jsonData << "(" << (insecte ? insecte->toJson() : "null") << ");";
+    jsonData << oldPosition.toJson() << ";";
+    jsonData << newPosition.toJson() << ";";
+    jsonData << "(" << (insectToRemove ? insectToRemove->toJson() : "null") << ")";
+    return jsonData.str();
 }
 
 void DeplacementAction::executerAction(Plateau& plateau)  {
+    if (plateau.getInsecteAt(newPosition) != nullptr){
+        insectBelow = plateau.getInsecteAt(newPosition);
+    }
     plateau.deplacerInsecte(insecte, newPosition);
 }
 
@@ -38,10 +65,6 @@ void DeplacementAction::undo(Plateau& plateau)  {
         return;
     }
     plateau.deplacerInsecte(insecte, oldPosition);
-}
-
-std::string DeplacementAction::toJson() const  {
-    return "{\"type\": \"DeplacementAction\", \"oldPosition\": " + oldPosition.toJson() + ", \"newPosition\": " + newPosition.toJson() + "}";
 }
 
 void MangerPionAction::executerAction(Plateau& plateau) {
@@ -59,8 +82,4 @@ void MangerPionAction::undo(Plateau& plateau) {
     if (insectToRemove) {
         plateau.ajouterInsecte(insectToRemove, newPosition);
     }
-}
-
-std::string MangerPionAction::toJson() const {
-    return "{\"type\": \"MangerPionAction\", \"oldPosition\": " + oldPosition.toJson() + ", \"newPosition\": " + newPosition.toJson() + "}";
 }

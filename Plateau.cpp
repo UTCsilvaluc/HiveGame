@@ -50,7 +50,6 @@ void Plateau::deplacerInsecte(Insecte* insecte, const Hexagon& nouvellePosition)
     mettreAJourLimites(); // Mettre à jour les limites du plateau
 }
 void Plateau::superposerInsecte(Insecte* insecteExistant, Insecte* newInsecte) {
-    std::cout << "\n\n ------------On superpose !------------ \n\n";
     newInsecte->setDessous(insecteExistant);
     insecteExistant->setDessus(newInsecte);
     plateauMap[insecteExistant->getCoords()] = newInsecte;
@@ -257,19 +256,9 @@ std::string Plateau::toJson() const {
     std::stringstream jsonData;
 
     jsonData << "{\n";
-
-    // plateauMap
-    jsonData << "  \"plateauMap\": {\n";
-    bool firstEntry = true; // Pour éviter la virgule finale
-    for (const auto& it : plateauMap) {
-        if (!firstEntry) {
-            jsonData << ",\n";
-        }
-        firstEntry = false;
-
-        // Conversion de la clé (Hexagon) et gestion de la valeur
-        jsonData << "    \"" << escapeJson(it.first.toJson()) << "\": "
-                 << (it.second ? it.second->toJson() : "null");
+    jsonData << "  \"insectesSurPlateau\": {\n";
+    for (auto it = insectesSurPlateau.begin() ; it != insectesSurPlateau.end() ; it++){
+        jsonData << (*it)->toJson() << "\n";
     }
     jsonData << "\n  },\n";
 

@@ -410,7 +410,7 @@ std::string Insecte::toJson() const {
     std::stringstream jsonData;
 
     // Identifiant unique basé sur l'adresse mémoire (unique ID)
-    jsonData << static_cast<const void*>(this) << ";";
+    jsonData << (this ? std::to_string(reinterpret_cast<std::uintptr_t>(this)) : "null") << ";";
 
     // Nom de l'insecte
     jsonData << nom << ";";

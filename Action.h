@@ -33,7 +33,7 @@ private:
 
 public:
     PlacementAction(Insecte* insecte, const Hexagon& position, Joueur* joueur)
-        : insecte(insecte), position(position), joueur(joueur), insectBelow(nullptr) {}
+        : insecte(insecte), position(position), joueur(joueur) {}
 
     void executerAction(Plateau& plateau) override ;
     void undo(Plateau& plateau) override;
@@ -46,10 +46,11 @@ private:
     Insecte* insecte;
     Hexagon oldPosition;
     Hexagon newPosition;
+    Insecte* insectBelow;
 
 public:
     DeplacementAction(Insecte* insecte, const Hexagon& oldPos, const Hexagon& newPos)
-        : insecte(insecte), oldPosition(oldPos), newPosition(newPos) {}
+        : insecte(insecte), oldPosition(oldPos), newPosition(newPos), insectBelow(nullptr) {}
 
     void executerAction(Plateau& plateau) override;
 
@@ -74,6 +75,27 @@ public:
     void undo(Plateau& plateau) override ;
 
     std::string toJson() const override ;
+};
+
+class ActionFactory {
+public:
+    // Méthode statique pour créer une action en fonction du nom
+    static std::unique_ptr<Action> createAction(const std::string& actionType,
+                                                Insecte* insecte,
+                                                const Hexagon& position,
+                                                Joueur* joueur,
+                                                const Hexagon& oldPos = Hexagon(),
+                                                const Hexagon& newPos = Hexagon()) {
+        if (actionType == "PlacementAction") {
+            return std::make_unique<PlacementAction>(insecte, position, joueur);
+        } else if (actionType == "DeplacementAction") {
+            return std::make_unique<DeplacementAction>(insecte, oldPos, newPos);
+        } else if (actionType == "MangerPionAction") {
+            return std::make_unique<MangerPionAction>(insecte, oldPos, newPos);
+        } else {
+            throw std::invalid_argument("Type d'action inconnu");
+        }
+    }
 };
 
 #endif // ACTION_H

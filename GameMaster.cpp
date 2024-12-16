@@ -390,8 +390,8 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
             {"bonusBlocage", 7.0}
     };
     // Mots-clés pour détecter le début des blocs
-    std::vector<std::string> debutBlocs = {"plateauMap", "joueur1", "joueur2" , "insectesSurPlateau"};
-    std::unordered_map<std::string, Joueur*> joueurs;
+    std::vector<std::string> debutBlocs = {"joueur1", "joueur2" , "insectesSurPlateau"};
+    std::map<std::string, Joueur*> joueurs;
     std::ifstream fichier(cheminFichier); // Ouvre le fichier
     if (!fichier.is_open()) {
         std::cerr << "Erreur: Impossible d'ouvrir le fichier " << cheminFichier << "\n";
@@ -399,7 +399,7 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
     }
 
     std::string ligne;
-    std::unordered_map<std::string, std::string> listeContent; // Contenu des blocs
+    std::map<std::string, std::string> listeContent; // Contenu des blocs
     std::string contenuBloc = "";  // Accumulateur pour le contenu du bloc
     int niveauAccolade = 0; // Suivi de l'imbrication des accolades
     std::string blocEnCours = "";
@@ -415,6 +415,7 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
         // Recherche des blocs
         for (const std::string& bloc : debutBlocs) {
             if (ligne.find(bloc) != std::string::npos) {
+                std::cout<< bloc << " trouvé !";
                 blocEnCours = bloc; // Définit le bloc en cours
                 contenuBloc = "";    // Réinitialise le contenu du bloc
                 niveauAccolade = 0;  // Réinitialise l'imbrication
@@ -454,7 +455,11 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
             modeIA = std::stoi(ligne.substr(ligne.find(":") + 1));
         }
     }
-
+    this->tour = static_cast<unsigned int>(tour);
+    this->modeIA = static_cast<int>(modeIA);
+    this->mode = static_cast<int>(mode);
+    this->maxRetourArriere = static_cast<int>(maxRetourArriere);
+    std::cout<<"tour vaut !!!!" << tour;
     fichier.close(); // Ferme le fichier après lecture
     joueur1 = new JoueurHumain("undefined");
     joueur2 = new JoueurHumain("undefined2");
@@ -464,14 +469,15 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
     } else if (modeIA == 1) {
         joueur2 = new JoueurIA("IA");
     }else if (modeIA == 2){
-        Joueur* joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
+        joueur2 = new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA);
     }else if(modeIA == 3){
-        Joueur* joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
+        joueur2 = new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1);
     }
     // Affiche les contenus des blocs détectés
     for (const auto& [bloc, contenu] : listeContent) {
         // Traitement spécifique pour les blocs "joueur1", "joueur2", "plateauMap"
         if (bloc == "joueur1" || bloc == "joueur2") {
+            std::cout << "Traitement du bloc: " << bloc << std::endl;
             std::vector<Insecte*> deck;
             std::istringstream stream(contenu); // Utiliser un flux pour lire ligne par ligne , permet de simuler un getline
             std::string ligne;
@@ -486,11 +492,10 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
 
                     // Nettoyer tout autre espace au milieu de la chaîne
                     element = std::regex_replace(element, std::regex("\\s+"), ""); // Supprimer les espaces internes supplémentaires
-
                     elementsEmpiles.push_back(element); // Empiler l'élément dans le vecteur
                     index++;
                 }
-                if (elementsEmpiles.size() >= 4){
+                if (elementsEmpiles.size() >= 3){
                     if (joueurs.empty()){
                         joueurs[elementsEmpiles[3]] = joueur1;
                         joueur1->setName(elementsEmpiles[3]);
@@ -506,60 +511,8 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
                 }
             }
         }
-
-        // Traitement spécifique pour "plateauMap"
-        if (bloc == "plateauMap") {
-            std::cout << bloc;
-            // Séparer chaque ligne en utilisant le délimiteur ":"
-            std::istringstream stream(contenu); // Utiliser un flux pour lire ligne par ligne
-            std::string ligne;
-            while (std::getline(stream, ligne)) {
-
-                std::istringstream ligneStream(ligne);
-                std::string keyValue;
-                std::string element;
-                std::vector<std::string> elementsEmpiles;
-                while (std::getline(ligneStream, keyValue, ':')) {
-                    // Nettoyer et séparer les éléments à partir du délimiteur ';'
-                    std::istringstream keyStream(keyValue);
-                    int index = 1;
-                    while (std::getline(keyStream, element, ';')) {
-                        // Nettoyer les espaces autour de l'élément et supprimer les virgules
-                        element = std::regex_replace(element, std::regex("^\\s+|\\s+$"), ""); // Enlever les espaces autour
-                        element = std::regex_replace(element, std::regex("\\s+"), ""); // Enlever les espaces internes
-                        elementsEmpiles.push_back(element); // Empiler l'élément dans le vecteur
-                        index++;
-                    }
-                    if (elementsEmpiles.size() >= 4){
-                        if (joueurs.empty()){
-                            joueurs[elementsEmpiles[4]] = joueur1;
-                            joueur1->setName(elementsEmpiles[4]);
-                            joueurs[elementsEmpiles[4]]->clearDeck();
-                        } else if (joueurs.size() == 1 && joueurs.find(elementsEmpiles[4]) == joueurs.end()){
-                            joueurs[elementsEmpiles[4]] = joueur2;
-                            joueur2->setName(elementsEmpiles[4]);
-                            joueurs[elementsEmpiles[4]]->clearDeck();
-                        }
-                        std::string element = elementsEmpiles[3]; // Assurez-vous que l'élément est celui que vous attendez
-                        std::regex rgx("\\[(-?\\d+),(-?\\d+)\\]"); // Expression régulière pour capturer les entiers
-                        std::smatch matches;
-                        int q = 0;
-                        int r = 0;
-
-                        // Recherche des valeurs dans l'élément
-                        if (std::regex_match(element, matches, rgx)) {
-                            // Extraction des valeurs
-                            q = std::stoi(matches[1].str());
-                            r = std::stoi(matches[2].str());
-                            // Affichage des valeurs extraites
-                        }
-                        Insecte *insecte = factory.createInsecte(elementsEmpiles[2] , Hexagon(q , r) ,joueurs[elementsEmpiles[4]]);
-                        pMap[Hexagon(q,r)] = insecte;
-                        }
-                }
-            }
-        }
         if (bloc == "insectesSurPlateau") {
+            std::map<std::string , std::string> superpositions;
             std::cout << "Traitement du bloc: " << bloc << std::endl;
 
             // Flux pour parcourir le contenu du bloc
@@ -602,28 +555,34 @@ std::map<Hexagon, Insecte*> GameMaster::afficherFichierAvecBlocs(const std::stri
                     }
                     if (joueurs.find(proprietaire) == joueurs.end()) {
                         if (joueurs.size() == 0) {
+                            std::cout<<"Création du premier joueur 2 " << elementsEmpiles[3];
                             joueurs[proprietaire] = joueur1;
                             joueur1->setName(proprietaire);
+                            joueurs[elementsEmpiles[3]]->clearDeck();
                         } else {
+                            std::cout<<"Création du deuxieme joueur 2 " << elementsEmpiles[3];
                             joueurs[proprietaire] = joueur2;
                             joueur2->setName(proprietaire);
+                            joueurs[elementsEmpiles[3]]->clearDeck();
                         }
                     }
-                    Insecte* insecte = pMap[Hexagon(q,r)];
+
                     // Créer l'insecte et l'ajouter au plateau
-                    if (insecte == nullptr){
-                        Insecte* insecte = factory.createInsecte(type, Hexagon(q, r), joueurs[proprietaire]);
-                        std::cout << "Insecte créé : " << std::endl;
-                        std::cout << "  ID: " << id << std::endl;
-                        std::cout << "  Type: " << type << std::endl;
-                        std::cout << "  Coordonnées: [" << q << ", " << r << "]" << std::endl;
-                        std::cout << "  Propriétaire: " << proprietaire << std::endl;
-                    }
+                    Insecte* insecte = factory.createInsecte(type, Hexagon(q, r), joueurs[proprietaire]);
                     mapID_Insecte[id] = insecte;
-                    // reste à ajoiter dessus / dessous
+                    this->plateau.addInsectePlateau(insecte);
+                    if (dessus != "null"){ //dessous est celui superposé
+                        superpositions[id] = dessus;
+                    } else {
+                        pMap[Hexagon(q,r)] = insecte;
+                    }
                 } else {
                     std::cerr << "Erreur: Ligne mal formatée dans 'insectesSurPlateau': " << ligne << std::endl;
                 }
+            }
+            for (const auto&[key, value] : superpositions){
+                mapID_Insecte[key]->setDessus(mapID_Insecte[value]);
+                mapID_Insecte[value]->setDessous(mapID_Insecte[key]);
             }
         }
 
@@ -736,8 +695,6 @@ void GameMaster::jouer() {
                 if (!plateau.playerCanMoveInsecte(current) && current->getDeckSize() > 0) {
                     std::cout << "Aucun mouvement possible, vous devez placer un pion.\n";
                     choice = 2;
-                } else {
-                    choice = current->getInputForAction();
                 }
             }
         }
@@ -766,7 +723,7 @@ void GameMaster::jouer() {
             }
         }
         tour++;
-        //saveGame();
+        saveGame();
     }
 }
 
@@ -797,6 +754,9 @@ void GameMaster::placerPion(Joueur* current, bool needPlayQueen) {
         }
         else{
             std::vector<Hexagon> placementsPossibles = plateau.getPlacementsPossibles(insecteAPlacer);
+            if (placementsPossibles.empty() && plateau.playerCanMoveInsecte(current)){
+                placementsPossibles = insecteAPlacer->getCoords().getVoisins();
+            }
             plateau.afficherPlateauAvecPossibilites(placementsPossibles, joueur1, joueur2, current);
             plateau.afficherPossibilitesPlacements(insecteAPlacer, placementsPossibles);;
             int choix = current->getInputForPlacementIndex(placementsPossibles);
@@ -967,6 +927,11 @@ std::string GameMaster::toJson() const {
     jsonData << "  \"modeIA\": " << modeIA << "\n";
 
     jsonData << "}";
+    jsonData << "  \"actions\"{\n " ;
+    for (auto it = actionsDeque.begin() ; it != actionsDeque.end() ; it++){
+        jsonData << (*it)->toJson() << "\n";
+    }
+    jsonData << "}" ;
     return jsonData.str();
 }
 

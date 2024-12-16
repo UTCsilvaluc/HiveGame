@@ -152,14 +152,14 @@ std::string Joueur::toJson() const {
     jsonData << "{\n";
     jsonData << "  \"nom\": \"" << nom << "\",\n";
 
-    jsonData << "  \"deck\": [";
+    jsonData << "  \"deck\": [\n";
     for (size_t i = 0; i < deck.size(); ++i) {
         if (i != 0) {
-            jsonData << ", ";  // S�parateur entre les insectes
+            jsonData << "\n";  // S�parateur entre les insectes
         }
         jsonData << deck[i]->toJson();  // Appel de toJson pour chaque Insecte
     }
-    jsonData << "]\n";
+    jsonData << "\n]\n";
 
     jsonData << "}";
     return jsonData.str();

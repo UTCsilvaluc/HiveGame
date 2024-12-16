@@ -10,6 +10,7 @@ int main() {
     plateau.afficherPlateau();*/
 
     GameMaster master(plateau);
+    //master.startGame();
     master.startGameForIA();
     // Test
 
