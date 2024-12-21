@@ -25,23 +25,7 @@ void GameMaster::startGame() {
         std::cin >> choix;
     }
     if (choix == 1) {
-        // Lancer une nouvelle partie
-        std::unordered_map<std::string, double> poidsIA = {
-            {"distanceReineAdverse", 5},
-            {"distanceReineAllieeEngorge", 1},
-            {"evaluerCohesion", 1},
-            {"distanceMin", 10.0},
-            {"evaluerAttaqueReineAdverse", 2.0},
-            {"potentielFuturPlacement", 0.75},
-            {"placement", 0.75},
-            {"MenacerReineAdverse", 10.0},
-            {"plusMenacerReineAdverse", -5.0},
-            {"multiDeRisqueSurReine", 1.5},
-            {"bougerReine", 10.0},
-            {"bougerInsectePourProtegerReine", 5.0},
-            {"laisserReineSecurite", 5.0},
-            {"bonusBlocage", 7.0}
-        };
+
         std::cout << "\nDémarrage du jeu HiveGame en cours...\n" << std::endl;
         mode = getInput("Merci de sélectionner le mode de jeu :\n1 - Joueur vs Joueur (JvJ)\n2 - Joueur vs IA (JvIA)\n", 1, 2);
         if (mode == 1) std::cout << "Vous avez sélectionné le mode : JvJ\n";
@@ -54,16 +38,17 @@ void GameMaster::startGame() {
         std::cout << "\nMerci de saisir le nom du Joueur : ";
         std::cin >> nom;
 
-        joueur1 = new JoueurHumain(nom);  // Créer le joueur 1
+        joueur1 = JoueurFactory::createJoueur(JoueurType::HUMAIN, nom);  // Créer le joueur 1
 
         if (mode == 1) {
             std::cout << "\nMerci de saisir le nom du second Joueur : ";
             std::cin >> nom;
             joueur2 = new JoueurHumain(nom);  // Créer le joueur 2
         } else {
-            joueur2 = (modeIA == 1) ? new JoueurIA("IA") :
-                      (modeIA == 2) ? new JoueurIANiveau2("IA", &plateau.getPlateauMap(), &tour, poidsIA) :
-                      (modeIA == 3) ? new JoueurIANiveau3("IA", &plateau.getPlateauMap(), &tour, poidsIA, joueur1) : nullptr;
+            joueur2 = (modeIA == 1) ? JoueurFactory::createJoueur(JoueurType::IA, "IA Random") :
+                      (modeIA == 2) ? JoueurFactory::createJoueur(JoueurType::IA_NIVEAU2, "IA Niveau 2",&plateau.getPlateauMap(), &tour) :
+                      (modeIA == 3) ? JoueurFactory::createJoueur(JoueurType::IA_NIVEAU3, "BotN3",&plateau.getPlateauMap(), &tour, joueur1) :
+                                    nullptr;
         }
         creerDeckPourJoueurs();
     } else {
@@ -329,42 +314,11 @@ std::vector<Insecte*> GameMaster::creerDeck() {
 
 
 void GameMaster::startGameForIA() {
-    std::unordered_map<std::string, double> poidsIA1 = {
-            {"distanceReineAdverse", 5},
-            {"distanceReineAllieeEngorge", 1},
-            {"evaluerCohesion", 1},
-            {"distanceMin", 10.0},
-            {"evaluerAttaqueReineAdverse", 2.0},
-            {"potentielFuturPlacement", 0.75},
-            {"placement", 0.75},
-            {"MenacerReineAdverse", 10.0},
-            {"plusMenacerReineAdverse", -5.0},
-            {"multiDeRisqueSurReine", 1.5},
-            {"bougerReine", 10.0},
-            {"bougerInsectePourProtegerReine", 5.0},
-            {"laisserReineSecurite", 5.0},
-            {"bonusBlocage", 7.0}
-    };
-
-    std::unordered_map<std::string, double> poidsIA2 = {
-            {"distanceReineAdverse", 5},
-            {"distanceReineAllieeEngorge", 1},
-            {"evaluerCohesion", 1},
-            {"distanceMin", 10.0},
-            {"evaluerAttaqueReineAdverse", 2.0},
-            {"potentielFuturPlacement", 0.75},
-            {"placement", 0.75},
-            {"MenacerReineAdverse", 10.0},
-            {"plusMenacerReineAdverse", -5.0},
-            {"multiDeRisqueSurReine", 1.5},
-            {"bougerReine", 10.0},
-            {"bougerInsectePourProtegerReine", 5.0},
-            {"laisserReineSecurite", 5.0},
-            {"bonusBlocage", 7.0}
-    };
-
-    joueur1 = new JoueurIANiveau2("IA1", &plateau.getPlateauMap(), &tour, poidsIA1);  // Cr�er le joueur 1
-    joueur2 = new JoueurIANiveau2("IA2", &plateau.getPlateauMap(), &tour, poidsIA2);
+    joueur1 = JoueurFactory::createJoueur(JoueurType::IA_NIVEAU2, "IA1",
+                                                      &plateau.getPlateauMap(), &tour,
+                                                      joueur1);
+    joueur2 = JoueurFactory::createJoueur(JoueurType::IA_NIVEAU2, "IA2",
+                                                      &plateau.getPlateauMap(), &tour);
     //joueur1->setAdversaire(joueur2);
     jouer();
 }

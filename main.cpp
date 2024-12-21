@@ -11,7 +11,7 @@ int main() {
 
     GameMaster master(plateau);
     //master.startGame();
-    master.startGameForIA();
+    master.startGame();
     // Test
 
     return 0;

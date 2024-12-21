@@ -553,4 +553,101 @@ private:
 
 };
 
+enum class JoueurType {
+    HUMAIN,
+    IA,
+    IA_NIVEAU2,
+    IA_NIVEAU3
+};
+
+class JoueurFactory {
+private:
+    // Exemple de poids par défaut pour IA niveau 2
+    static const std::unordered_map<std::string, double>& defaultHeuristicsN2() {
+        // On le déclare static pour qu’il soit créé une seule fois
+        static std::unordered_map<std::string, double> defaults = {
+            {"distanceReineAdverse", 5},
+            {"distanceReineAllieeEngorge", 1},
+            {"evaluerCohesion", 1},
+            {"distanceMin", 10.0},
+            {"evaluerAttaqueReineAdverse", 2.0},
+            {"potentielFuturPlacement", 0.75},
+            {"placement", 0.75},
+            {"MenacerReineAdverse", 10.0},
+            {"plusMenacerReineAdverse", -5.0},
+            {"multiDeRisqueSurReine", 1.5},
+            {"bougerReine", 10.0},
+            {"bougerInsectePourProtegerReine", 5.0},
+            {"laisserReineSecurite", 5.0},
+            {"bonusBlocage", 7.0}
+        };
+        return defaults;
+    }
+
+
+
+    // Idem pour IA niveau 3, si vous voulez d’autres valeurs
+    static const std::unordered_map<std::string, double>& defaultHeuristicsN3() {
+        static std::unordered_map<std::string, double> defaults = {
+            {"distanceReineAdverse", 5},
+            {"distanceReineAllieeEngorge", 1},
+            {"evaluerCohesion", 1},
+            {"distanceMin", 10.0},
+            {"evaluerAttaqueReineAdverse", 2.0},
+            {"potentielFuturPlacement", 0.75},
+            {"placement", 0.75},
+            {"MenacerReineAdverse", 10.0},
+            {"plusMenacerReineAdverse", -5.0},
+            {"multiDeRisqueSurReine", 1.5},
+            {"bougerReine", 10.0},
+            {"bougerInsectePourProtegerReine", 5.0},
+            {"laisserReineSecurite", 5.0},
+            {"bonusBlocage", 7.0}
+        };
+        return defaults;
+    }
+
+public:
+    static Joueur* createJoueur(JoueurType type,
+                                const std::string& nom,
+                                const std::map<Hexagon, Insecte*>* plateau = nullptr,
+                                unsigned int* tour = nullptr,
+                                Joueur* adversaire = nullptr,
+                                const std::unordered_map<std::string, double>& poidsHeuristiques = {})
+    {
+        switch(type)
+        {
+        case JoueurType::HUMAIN:
+            return new JoueurHumain(nom);
+
+        case JoueurType::IA:
+            return new JoueurIA(nom);
+
+        case JoueurType::IA_NIVEAU2:
+            if (!plateau || !tour)
+                throw std::invalid_argument("[JoueurFactory] Plateau/tour requis pour IA niveau 2.");
+            // Si l’appelant ne fournit pas de poids (poidsHeuristiques.empty()),
+            // on applique ceux par défaut.
+            if (poidsHeuristiques.empty()) {
+                return new JoueurIANiveau2(nom, plateau, tour, defaultHeuristicsN2());
+            } else {
+                return new JoueurIANiveau2(nom, plateau, tour, poidsHeuristiques);
+            }
+
+        case JoueurType::IA_NIVEAU3:
+            if (!plateau || !tour || !adversaire)
+                throw std::invalid_argument("[JoueurFactory] Plateau/tour requis pour IA niveau 3.");
+            // Idem pour le niveau 3
+            if (poidsHeuristiques.empty()) {
+                return new JoueurIANiveau3(nom, plateau, tour, defaultHeuristicsN3(), adversaire);
+            } else {
+                return new JoueurIANiveau3(nom, plateau, tour, poidsHeuristiques, adversaire);
+            }
+
+        default:
+            throw std::invalid_argument("[JoueurFactory] Type de joueur inconnu.");
+        }
+    }
+};
+
 #endif // JOUEUR_H
